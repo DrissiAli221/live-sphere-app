@@ -1,10 +1,13 @@
+import { Container, Heading } from '@chakra-ui/react'
 import React from 'react'
 
 function Home() {
   return (
-    <div>
-      
-    </div>
+    <Container maxW={'container.xl'}>
+        <Heading size='2xl' fontSize='md' textTransform={'uppercase'}>
+            Trending
+        </Heading>
+    </Container>
   )
 }
 
