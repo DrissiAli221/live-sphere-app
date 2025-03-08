@@ -1,4 +1,12 @@
-import { baseImageOriginal, baseImageW500, fetchDetails } from "@/services/api";
+import {
+  baseImageOriginal,
+  baseImageW500,
+  fetchCredits,
+  fetchDetails,
+} from "@/services/api";
+import { convertMinutesToHours, resolveRatingColor } from "@/utils/helper";
+import { IoCalendarOutline } from "react-icons/io5";
+import { LuClock10 } from "react-icons/lu";
 import {
   Box,
   Flex,
@@ -7,24 +15,47 @@ import {
   Image,
   Heading,
   Text,
+  Button,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 function DetailsPage() {
   const [details, setDetails] = useState({});
+  const [credits, setCredits] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const { type, id } = useParams();
 
+  //   useEffect(() => {
+  //     // Fetch details
+  //     fetchDetails(type, id)
+  //       .then((res) => setDetails(res))
+  //       .catch((err) => console.log(err))
+  //       .finally(() => setLoading(false));
+  //   }, [type, id]);
+
   useEffect(() => {
-    fetchDetails(type, id)
-      .then((res) => setDetails(res))
-      .catch((err) => console.log(err))
-      .finally(() => setLoading(false));
+    const fetchAllData = async () => {
+      try {
+        const [detailsData, creditsData] = await Promise.all([
+          fetchDetails(type, id),
+          fetchCredits(type, id),
+        ]);
+
+        setDetails(detailsData);
+        setCredits(creditsData);
+      } catch (error) {
+        console.log(error, "Error fetching data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAllData();
   }, [type, id]);
 
   console.log(details);
+  console.log(credits);
 
   // Loading state
   if (loading) {
@@ -68,39 +99,144 @@ function DetailsPage() {
 
             <Box>
               {/* Movie Title */}
-              <Heading fontSize="3xl">
+              <Heading fontSize="3xl" fontWeight="bolder">
                 {details?.title || details?.name}{" "}
                 {/* Movie - TV shows (conditional) Release Date */}
-                <Text as="span" fontWeight="normal" fontSize="1.25rem" ml={2}>
+                {/* <Text as="span" fontWeight="normal" fontSize="1.25rem" ml={2}>
                   {type === "tv"
                     ? details?.first_air_date
-                      ? `${new Date(details.first_air_date).getFullYear()} - ${ 
-                        details?.in_production
+                      ? `${new Date(details.first_air_date).getFullYear()} - ${
+                          details?.in_production
                             ? "Present"
                             : new Date(details?.last_air_date).getFullYear() ||
                               ""
                         }`
                       : "N/A"
                     : new Date(details?.release_date).getFullYear() || "N/A"}
-                </Text>
+                </Text> */}
               </Heading>
 
-              <Flex alignItems={"center"} gap={"4"} mt={"2"} mb={"5"}>
+              {/* Overview */}
+
+              <Text
+                fontSize={"md"}
+                my={"3"}
+                maxW={{ base: "xs", sm: "md", xl: "xl" }}
+              >
+                {details?.overview}
+              </Text>
+
+              <Flex alignItems={"center"} gap={"4"} mt={"2"}>
                 <Text
                   fontSize={"1.25rem"}
+                  fontWeight={"extrabold"}
                   bg={"yellow.500"}
                   color={"black"}
                   borderRadius={"5px"}
                   px={"2"}
-                  py={"1"}
                 >
-                  IMDb {details?.vote_average?.toFixed(1)}
+                  IMDb
                 </Text>
+              </Flex>
+
+              {/* Rating */}
+              <Flex align={"baseline"} mb={"2"}>
+                <Text
+                  fontSize="2.8rem"
+                  fontWeight="bold"
+                  color={resolveRatingColor(details?.vote_average)}
+                  mr={1}
+                >
+                  {details?.vote_average.toFixed(1)}
+                </Text>
+                <Text fontSize="1.25rem" mt="4px">
+                  /10
+                </Text>
+                <Flex gap={"2"} align={"center"} ml={"6"}>
+                  <IoCalendarOutline size={"35"} />
+                  <Text fontSize={"1.25rem"} fontWeight={"bold"}>
+                    {type === "tv"
+                      ? details?.first_air_date
+                        ? `${new Date(
+                            details.first_air_date
+                          ).getFullYear()} - ${
+                            details?.in_production
+                              ? "Present"
+                              : new Date(
+                                  details?.last_air_date
+                                ).getFullYear() || ""
+                          }`
+                        : "N/A"
+                      : new Date(details?.release_date).getFullYear() || "N/A"}
+                  </Text>
+
+                  {type === "movie" && (
+                    <Flex gap={1} align={"center"} ml={"5"}>
+                      <LuClock10 size={"35"} />
+                      <Text fontSize={"1.25rem"} fontWeight={"bold"}>
+                        {convertMinutesToHours(details?.runtime)}
+                      </Text>
+                    </Flex>
+                  )}
+
+                  {/* <button
+                    className="flex items-center ml space-x-1 border border-white cursor-pointer text-green-500 gap-1.5 px-4 py-2 rounded-lg hover:bg-green-100"
+                    onClick={() => console.log("Added to WatchList")}
+                  >
+                    <FaCheckCircle size={20} />
+                    <span>In WatchList</span>
+                  </button>
+                  <Button
+                    ml={"5"}
+                    variant={"outline"}
+                    onClick={() => console.log("Add to WatchList")}
+                  >
+                    Add to WatchList
+                  </Button> */}
+                </Flex>
+              </Flex>
+
+              {/* Genre */}
+              <Flex gap={"2"} mb={"2"}>
+                {details?.genres.map((genre) => (
+                  <Text
+                    key={genre.id}
+                    border={"1px solid #C49A6C"}
+                    borderRadius={"15px"}
+                    px={2.5}
+                    bg={"rgba(196, 154, 108, 0.5)"}
+                  >
+                    {genre.name}
+                  </Text>
+                ))}
               </Flex>
             </Box>
           </Flex>
         </Container>
       </Box>
+      {credits?.cast.length !== 0 && (
+        <Container maxW={"container.xl"} pb={"10"}>
+          <Heading as={"h1"} size={"xl"} mt={"10"} mb={"5"}>
+            Cast
+          </Heading>
+          <Flex overflowX={'scroll'} gap={'5'} pb={'5'}>
+                    {credits?.cast.slice(0, 12).map((actor) => (
+                        <Box key={actor.id} minW={'200px'}>
+                            <Image
+                                src={`${baseImageW500}/${actor.profile_path}`}
+                                alt={actor.name}
+                                borderRadius={'10px'}
+                                w={'100%'}
+                                h={'300px'}
+                                objectFit={'cover'}
+                            />
+                            <Text fontSize={'md'} color={'white'} mt={'2'}>{actor.name}</Text>
+                        </Box>
+                    ))}
+                </Flex>
+         
+        </Container>
+      )}
     </Box>
   );
 }

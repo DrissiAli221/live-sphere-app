@@ -31,7 +31,7 @@ function Home() {
         </Heading>
 
             <Flex alignItems={'center'} gap={'2'} border={"1px solid #F00"} borderRadius={'15px'} >
-                    {/* <Box 
+                    <Box 
                         as={'button'} 
                         px={'3'} py={'1'} 
                         borderRadius={'15px'}
@@ -48,14 +48,14 @@ function Home() {
                     bg={timeWindow === 'week' ? 'red.500' : 'transparent'}
                     cursor={'pointer'}
                     onClick={() => setTimeWindow('week')}
-                    >Weekly</Box> */}
+                    >Weekly</Box>
 
-                    <SegmentedControl
+                    {/* <SegmentedControl
                     size="md"
                     defaultValue={timeWindow === 'day' ? "Daily" : "Weekly"}
                     items={["Daily", "Weekly"]}
                     onChange={(value) => setTimeWindow(value)}
-                    />
+                    /> */}
 
             </Flex>
 
