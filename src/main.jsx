@@ -9,6 +9,7 @@ import Movies from './pages/movies/Movies'
 import Shows from './pages/tv/Shows'
 import Search from './pages/search/Search'
 import DetailsPage from './pages/DetailsPage'
+import ImprovedDetails from './pages/ImprovedDetails'
 
 const router = createBrowserRouter([
     {
@@ -33,7 +34,7 @@ const router = createBrowserRouter([
             },
             {
                 path: '/:type/:id', //dynamic path
-                element: <DetailsPage />,
+                element: <ImprovedDetails />,
             }
         ]
     }

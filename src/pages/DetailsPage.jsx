@@ -19,6 +19,9 @@ import {
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { AnimatedSubscribeButton } from "@/components/magicui/animated-subscribe-button";
+import { CheckIcon, ChevronRightIcon } from "lucide-react";
+import MovieCastSection from "@/components/MovieCastSection";
 
 function DetailsPage() {
   const [details, setDetails] = useState({});
@@ -28,7 +31,7 @@ function DetailsPage() {
   const { type, id } = useParams();
 
   //   useEffect(() => {
-  //     // Fetch details
+      // Fetch details
   //     fetchDetails(type, id)
   //       .then((res) => setDetails(res))
   //       .catch((err) => console.log(err))
@@ -194,6 +197,22 @@ function DetailsPage() {
                     Add to WatchList
                   </Button> */}
                 </Flex>
+
+                {/* Subscribe Button */}
+
+                <Flex gap="2" mt="5" justifyContent="center" w="30%" mb="auto">
+                    <AnimatedSubscribeButton>
+                      <span className="group inline-flex items-center">
+                        Add To Watchlist
+                        <ChevronRightIcon className="ml-1 size-4 transition-transform duration-300 group-hover:translate-x-1" />
+                      </span>
+                      <span className="group inline-flex items-center">
+                        <CheckIcon className="mr-2 size-4" />
+                        Added to Watchlist
+                      </span>
+                    </AnimatedSubscribeButton>
+                </Flex>
+
               </Flex>
 
               {/* Genre */}
@@ -214,29 +233,7 @@ function DetailsPage() {
           </Flex>
         </Container>
       </Box>
-      {credits?.cast.length !== 0 && (
-        <Container maxW={"container.xl"} pb={"10"}>
-          <Heading as={"h1"} size={"xl"} mt={"10"} mb={"5"}>
-            Cast
-          </Heading>
-          <Flex overflowX={'scroll'} gap={'5'} pb={'5'}>
-                    {credits?.cast.slice(0, 12).map((actor) => (
-                        <Box key={actor.id} minW={'200px'}>
-                            <Image
-                                src={`${baseImageW500}/${actor.profile_path}`}
-                                alt={actor.name}
-                                borderRadius={'10px'}
-                                w={'100%'}
-                                h={'300px'}
-                                objectFit={'cover'}
-                            />
-                            <Text fontSize={'md'} color={'white'} mt={'2'}>{actor.name}</Text>
-                        </Box>
-                    ))}
-                </Flex>
-         
-        </Container>
-      )}
+      <MovieCastSection credits={credits} baseImageW500={baseImageW500} />
     </Box>
   );
 }
