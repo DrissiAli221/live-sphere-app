@@ -64,7 +64,6 @@ const MovieCastSection = ({ credits, baseImageW500 }) => {
         {/* Navigation buttons */}
         <HStack spacing={2}>
           <IconButton
-            icon={<FiChevronLeft size={20} />}
             onClick={() => handleScroll("left")}
             aria-label="Scroll left"
             variant="ghost"
@@ -72,7 +71,6 @@ const MovieCastSection = ({ credits, baseImageW500 }) => {
             _hover={{ bg: "rgba(255, 255, 255, 0.1)" }}
           />
           <IconButton
-            icon={<FiChevronRight size={20} />}
             onClick={() => handleScroll("right")}
             aria-label="Scroll right"
             variant="ghost"

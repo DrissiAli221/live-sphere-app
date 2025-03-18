@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Provider } from "@/ui/provider"
+import { Provider } from "@/chakraui/provider"
 import './index.css'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import App from './App'
@@ -8,7 +8,7 @@ import Home from './pages/Home'
 import Movies from './pages/movies/Movies'
 import Shows from './pages/tv/Shows'
 import Search from './pages/search/Search'
-import DetailsPage from './pages/DetailsPage'
+import DeatailsPagev3 from '@/components/DetailsPagev3'
 import ImprovedDetails from './pages/ImprovedDetails'
 
 const router = createBrowserRouter([
@@ -34,7 +34,7 @@ const router = createBrowserRouter([
             },
             {
                 path: '/:type/:id', //dynamic path
-                element: <ImprovedDetails />,
+                element: <DeatailsPagev3 />,
             }
         ]
     }

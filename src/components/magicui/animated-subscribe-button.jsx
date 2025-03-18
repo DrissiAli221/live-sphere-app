@@ -1,4 +1,4 @@
-"use client";
+
 import { clsx } from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useState } from "react";
