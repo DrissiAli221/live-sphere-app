@@ -19,7 +19,7 @@ import {
   fetchDiscoverMovies,
   fetchMovieImages,
   fetchDetails,
-  fetchTrendingMovies
+  fetchTrendingMovies,
 } from "@/services/api";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -33,6 +33,7 @@ import {
 } from "react-icons/fa";
 import { BsCalendarDate } from "react-icons/bs";
 import { convertMinutesToHours } from "@/utils/helper";
+import ContentGrid from "@/components/ContentGrid";
 
 // Create a motion-enabled component
 const MotionBox = motion.create(Box);
@@ -196,6 +197,29 @@ function Movies() {
     return englishLogo || logos[0];
   };
 
+  // Replace with this safe version:
+  // Function to get the best backdrop to use
+  const getBackdropToUse = (movie) => {
+    if (
+      !movie ||
+      !movie.images ||
+      !movie.images.backdrops ||
+      movie.images.backdrops.length === 0
+    ) {
+      return null;
+    }
+
+    // Try to find a backdrop with null language first
+    const nullLanguageBackdrop = movie.images.backdrops.filter(
+      (backdrop) => backdrop.iso_639_1 === null
+    );
+
+    // Return null language backdrop if available, otherwise first backdrop
+    return nullLanguageBackdrop.length > 0
+      ? nullLanguageBackdrop[0]
+      : movie.images.backdrops[0];
+  };
+
   // Loading state with improved UI
   if (loading) {
     return (
@@ -243,7 +267,9 @@ function Movies() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
-            backgroundImage={`url(${baseImageOriginal}${randomMovie.images.backdrops[0].file_path})`}
+            backgroundImage={`url(${baseImageOriginal}${
+              randomMovie && getBackdropToUse(randomMovie)?.file_path
+            })`}
             backgroundSize="cover"
             backgroundPosition="center"
             backgroundRepeat="no-repeat"
@@ -476,7 +502,14 @@ function Movies() {
       <Box
         py={8}
         position="relative"
-        bg="linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0%, rgba(0,0,0,0.5) 20% ,rgba(0, 0, 0, 0.8) 40%, rgba(0, 0, 0, 1) 100%)"
+        bg="linear-gradient(to bottom, 
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.2) 8%,
+        rgba(0, 0, 0, 0.4) 15%,
+        rgba(0, 0, 0, 0.6) 25%,
+        rgba(0, 0, 0, 0.8) 35%,
+        rgba(0, 0, 0, 0.9) 50%,
+        rgba(0, 0, 0, 1) 100%)"
       >
         <Box py={4} position="sticky" top={0} zIndex={10} mb={3}>
           <Container maxW="container.xl">
@@ -693,78 +726,15 @@ function Movies() {
             Discover More {highlightedCategory} Movies
           </Heading>
 
-          <SimpleGrid columns={[1, 2, 3, 4]} spacing={6} px={[2, 4, 8]}>
-            {movies.slice(0, 8).map((movie) => (
-              <MotionBox
-                key={movie.id}
-                borderRadius="lg"
-                overflow="hidden"
-                bg={cardBg}
-                boxShadow="lg"
-                whileHover={{ y: -5, transition: { duration: 0.2 } }}
-              >
-                <Box height="200px" position="relative">
-                  <Image
-                    src={
-                      movie.poster_path
-                        ? `${baseImageOriginal}${movie.poster_path}`
-                        : "https://via.placeholder.com/300x450?text=No+Poster"
-                    }
-                    alt={movie.title}
-                    objectFit="cover"
-                    width="100%"
-                    height="100%"
-                  />
-                  <Box
-                    position="absolute"
-                    top={0}
-                    left={0}
-                    right={0}
-                    bottom={0}
-                    bgGradient="linear(to-t, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 50%)"
-                  />
-
-                  {/* Play button overlay */}
-                  <Box
-                    position="absolute"
-                    top="50%"
-                    left="50%"
-                    transform="translate(-50%, -50%)"
-                    opacity={0}
-                    _groupHover={{ opacity: 1 }}
-                    transition="all 0.2s"
-                    role="group"
-                  >
-                    <IconButton
-                      aria-label="Play movie"
-                      icon={<FaPlay />}
-                      colorScheme="red"
-                      rounded="full"
-                      size="lg"
-                      _hover={{ transform: "scale(1.1)" }}
-                    />
-                  </Box>
-                </Box>
-
-                <VStack p={4} align="start" spacing={1}>
-                  <Text fontWeight="bold" noOfLines={1}>
-                    {movie.title}
-                  </Text>
-                  <Text fontSize="sm" color="gray.400">
-                    {movie.release_date &&
-                      new Date(movie.release_date).getFullYear()}
-                  </Text>
-                  <Flex justify="space-between" width="100%" mt={2}>
-                    <Badge colorScheme="red" variant="solid" bg={accentColor}>
-                      {Math.floor(Math.random() * 3) === 0 ? "HD" : "4K"}
-                    </Badge>
-                    <Flex align="center">
-                      <Box as={FaStar} color="yellow.400" mr={1} size="12px" />
-                      <Text fontSize="sm">{movie.vote_average.toFixed(1)}</Text>
-                    </Flex>
-                  </Flex>
-                </VStack>
-              </MotionBox>
+          <SimpleGrid columns={[1, 2, 3, 4]} gap={4} spacing={6} px={[4, 6, 8]}>
+            {movies.slice(0, 8).map((item, index) => (
+              <ContentGrid
+                key={item.id}
+                item={item}
+                index={index}
+                contentType="movie"
+                baseImageOriginal={baseImageOriginal}
+              />
             ))}
           </SimpleGrid>
 

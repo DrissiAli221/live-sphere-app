@@ -9,7 +9,6 @@ import Movies from './pages/movies/Movies'
 import Shows from './pages/tv/Shows'
 import Search from './pages/search/Search'
 import DeatailsPagev3 from '@/components/DetailsPagev3'
-import ImprovedDetails from './pages/ImprovedDetails'
 
 const router = createBrowserRouter([
     {
@@ -42,8 +41,10 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+
     <Provider>
         <RouterProvider router={router} />
     </Provider>
+
   </StrictMode>,
 )

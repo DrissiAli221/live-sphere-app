@@ -32,6 +32,8 @@ import {
 } from "react-icons/fa";
 import { BsCalendarDate } from "react-icons/bs";
 import { FaClapperboard } from "react-icons/fa6";
+import ContentGrid from "@/components/ContentGrid";
+import { truncateText } from "@/utils/helper";
 
 // Create a motion-enabled component
 const MotionBox = motion.create(Box);
@@ -209,13 +211,36 @@ function Shows() {
         : "";
 
     const isOngoing =
-      show.details && show.details.status === "Returning Series";
+      show && show.details && show.details.in_production === true;
 
     if (firstAirYear && lastAirYear && firstAirYear !== lastAirYear) {
       return `${firstAirYear} - ${isOngoing ? "Present" : lastAirYear}`;
     }
 
     return firstAirYear || "";
+  };
+
+  // Replace with this safe version:
+  // Function to get the best backdrop to use
+  const getBackdropToUse = (randomShow) => {
+    if (
+      !randomShow ||
+      !randomShow.images ||
+      !randomShow.images.backdrops ||
+      randomShow.images.backdrops.length === 0
+    ) {
+      return null;
+    }
+
+    // Try to find a backdrop with null language first
+    const nullLanguageBackdrop = randomShow.images.backdrops.filter(
+      (backdrop) => backdrop.iso_639_1 === null
+    );
+
+    // Return null language backdrop if available, otherwise first backdrop
+    return nullLanguageBackdrop.length > 0
+      ? nullLanguageBackdrop[0]
+      : randomShow.images.backdrops[0];
   };
 
   // Loading state with improved UI
@@ -237,14 +262,6 @@ function Shows() {
     );
   }
 
-  // Helper function to truncate text
-  const truncateText = (text, maxLength) => {
-    if (!text) return "";
-    return text.length > maxLength
-      ? text.substring(0, maxLength) + "..."
-      : text;
-  };
-
   // Get season info display text
   const getSeasonInfo = (show) => {
     if (!show.details) return "";
@@ -258,6 +275,8 @@ function Shows() {
       episodes === 1 ? "Episode" : "Episodes"
     }`;
   };
+
+  console.log(tvShows);
 
   return (
     <Box position="relative">
@@ -277,7 +296,9 @@ function Shows() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
-            backgroundImage={`url(${baseImageOriginal}${randomShow.images.backdrops[0].file_path})`}
+            backgroundImage={`url(${baseImageOriginal}${
+              getBackdropToUse(randomShow).file_path
+            })`}
             backgroundSize="cover"
             backgroundPosition="center"
             backgroundRepeat="no-repeat"
@@ -322,7 +343,7 @@ function Shows() {
                   position="absolute"
                   top="32%"
                   left={[2, 4, 8]}
-                  maxWidth="75%"
+                  maxWidth="60%"
                   zIndex={1}
                 >
                   {hasValidLogo(randomShow) ? (
@@ -490,7 +511,7 @@ function Shows() {
                         transform: "scale(1.05)",
                       }}
                       transition="all 0.2s"
-                      borderColor="white"
+                      borderColor=" white"
                     >
                       Details
                     </Button>
@@ -506,7 +527,14 @@ function Shows() {
       <Box
         py={8}
         position="relative"
-        bg="linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0%, rgba(0,0,0,0.5) 20% ,rgba(0, 0, 0, 0.8) 40%, rgba(0, 0, 0, 1) 100%)"
+        bg="linear-gradient(to bottom, 
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.2) 8%,
+        rgba(0, 0, 0, 0.4) 15%,
+        rgba(0, 0, 0, 0.6) 25%,
+        rgba(0, 0, 0, 0.8) 35%,
+        rgba(0, 0, 0, 0.9) 50%,
+        rgba(0, 0, 0, 1) 100%)"
       >
         <Box py={4} position="sticky" top={0} zIndex={10} mb={3}>
           <Container maxW="container.xl">
@@ -672,7 +700,7 @@ function Shows() {
                     <Heading size="md" noOfLines={1}>
                       {show.name}
                     </Heading>
-                    <Text fontSize="sm" color="gray.300" noOfLines={1}>
+                    <Text fontSize="sm" color="gray.300" noOfLines={1}> 
                       {show.details && show.details.genres
                         ? show.details.genres
                             .slice(0, 2)
@@ -711,88 +739,25 @@ function Shows() {
           <Heading size="lg" color="white" mb={6} pl={[2, 4, 8]}>
             Discover More {highlightedCategory} Shows
           </Heading>
-
-          <SimpleGrid columns={[1, 2, 3, 4]} spacing={6} px={[2, 4, 8]}>
-            {tvShows.slice(0, 8).map((show) => (
-              <MotionBox
-                key={show.id}
-                borderRadius="lg"
-                overflow="hidden"
-                bg={cardBg}
-                boxShadow="lg"
-                whileHover={{ y: -5, transition: { duration: 0.2 } }}
-              >
-                <Box height="200px" position="relative">
-                  <Image
-                    src={
-                      show.poster_path
-                        ? `${baseImageOriginal}${show.poster_path}`
-                        : "https://via.placeholder.com/300x450?text=No+Poster"
-                    }
-                    alt={show.name}
-                    objectFit="cover"
-                    width="100%"
-                    height="100%"
-                  />
-                  <Box
-                    position="absolute"
-                    top={0}
-                    left={0}
-                    right={0}
-                    bottom={0}
-                    bgGradient="linear(to-t, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 50%)"
-                  />
-
-                  {/* Play button overlay */}
-                  <Box
-                    position="absolute"
-                    top="50%"
-                    left="50%"
-                    transform="translate(-50%, -50%)"
-                    opacity={0}
-                    _groupHover={{ opacity: 1 }}
-                    transition="all 0.2s"
-                    role="group"
-                  >
-                    <IconButton
-                      aria-label="Play show"
-                      icon={<FaPlay />}
-                      colorScheme="red"
-                      rounded="full"
-                      size="lg"
-                      _hover={{ transform: "scale(1.1)" }}
-                    />
-                  </Box>
-                </Box>
-
-                <VStack p={4} align="start" spacing={1}>
-                  <Text fontWeight="bold" noOfLines={1}>
-                    {show.name}
-                  </Text>
-                  <Flex justify="space-between" width="100%">
-                    <Text fontSize="sm" color="gray.400">
-                      {show.first_air_date &&
-                        new Date(show.first_air_date).getFullYear()}
-                    </Text>
-                    {show.details && (
-                      <Text fontSize="sm" color="gray.400">
-                        {show.details.number_of_seasons || "?"} Seasons
-                      </Text>
-                    )}
-                  </Flex>
-                  <Flex justify="space-between" width="100%" mt={2}>
-                    <Badge colorScheme="red" variant="solid" bg={accentColor}>
-                      {Math.floor(Math.random() * 3) === 0 ? "HD" : "4K"}
-                    </Badge>
-                    <Flex align="center">
-                      <Box as={FaStar} color="yellow.400" mr={1} size="12px" />
-                      <Text fontSize="sm">{show.vote_average.toFixed(1)}</Text>
-                    </Flex>
-                  </Flex>
-                </VStack>
-              </MotionBox>
-            ))}
-          </SimpleGrid>
+             
+             <SimpleGrid
+             columns={[1, 2, 3, 4]}
+             gap={4}
+             spacing={6}
+             px={[4, 6, 8]}
+           >
+             {tvShows
+               .slice(0, 8)
+               .map((item, index) => (
+                 <ContentGrid
+                   key={item.id}
+                   item={item}
+                   index={index}
+                   contentType="tv"
+                   baseImageOriginal={baseImageOriginal}
+                 />
+               ))}
+           </SimpleGrid>
 
           {/* Load more button */}
           <Flex justify="center" mt={10}>

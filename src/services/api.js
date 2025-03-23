@@ -6,7 +6,7 @@ export const baseImageOriginal = "https://image.tmdb.org/t/p/original";
 
 // Base URL for making requests to the movie database
 const baseURL = "https://api.themoviedb.org/3";
-const apiKey = import.meta.env.VITE_APP_API_KEY;
+export const apiKey = import.meta.env.VITE_APP_API_KEY;
 
 //Trending All fetch
 export const fetchTrending = async (timeWindow = "day") => {
@@ -95,3 +95,39 @@ export const fetchGenres = async (type) => {
   );
   return data.genres;
 };
+
+// fetch tv show providers
+export const fetchProviders = async () => {
+    const { data } = await axios.get(`${baseURL}/watch/providers/tv?api_key=${apiKey}`);
+    return data.results;
+}
+
+//fetch tv show details
+export const fetchTVDetails = async (id) => {
+    const { data } = await axios.get(`${baseURL}/tv/${id}?api_key=${apiKey}`);
+    return data;
+}
+
+//fetch tv show season details
+export const fetchTVSeasonDetails = async (id, seasonNumber) => {
+    const { data } = await axios.get(`${baseURL}/tv/${id}/season/${seasonNumber}?api_key=${apiKey}`);
+    return data;
+}
+
+// fetch tv recommendations 
+export const fetchTVRecommendations = async () => {
+    const { data } = await axios.get(`${baseURL}/tv/${id}/recommendations?api_key=${apiKey}`);
+    return data.results;
+}
+
+// fetch fetch Similar Movies
+export const fetchSimilarMovies = async (id) => {
+    const { data } = await axios.get(`${baseURL}/movie/${id}/similar?api_key=${apiKey}`);
+    return data.results;
+}
+
+// fetch Movie Videos
+export const fetchMovieVideos = async (id) => {
+    const { data } = await axios.get(`${baseURL}/movie/${id}/videos?api_key=${apiKey}`);
+    return data.results;
+}
