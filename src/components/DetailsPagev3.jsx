@@ -25,7 +25,6 @@ import {
   resolveStarRatingColor,
 } from "@/utils/helper";
 import TVShowEpisodes from "./TVShowEpisodes";
-
 import {
   Box,
   Flex,
@@ -44,6 +43,9 @@ import {
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import MovieDetailsPage from "./MovieDetailsPage";
+import { useAuth } from "@/context/AuthProvider";
+import { Toaster, toaster } from "@/components/ui/toaster";
+import { useFirestore } from "@/services/firestore";
 
 function DetailsPage() {
   const [details, setDetails] = useState({});
@@ -51,8 +53,12 @@ function DetailsPage() {
   const [loading, setLoading] = useState(true);
   const [images, setImages] = useState({});
   const [currentBackdropIndex, setCurrentBackdropIndex] = useState(0);
-  const { type, id } = useParams();
   const backdropSliderRef = useRef(null);
+  const [isInWatchList, setIsInWatchList] = useState(false);
+
+  const { type, id } = useParams();
+  const { user } = useAuth();
+  const { addToWatchList, checkIfAlreadyInWatchList, removeFromWatchList } = useFirestore();
 
   // Color values for theme
   const accentColor = "#FEC34B";
@@ -80,6 +86,17 @@ function DetailsPage() {
 
     fetchAllData();
   }, [type, id]);
+
+  useEffect(() => {
+    if (!user) {
+      setIsInWatchList(false);
+      return;
+    }
+
+    checkIfAlreadyInWatchList(user?.uid, id)
+      .then((res) => setIsInWatchList(res))
+      .catch((err) => console.log(err));
+  }, [user, id, checkIfAlreadyInWatchList]);
 
   // Loading state
   if (loading) {
@@ -119,10 +136,50 @@ function DetailsPage() {
     }
   };
 
-  console.log(details)
+  const handleAddToWatchList = async () => {
+    if (!user) {
+      toaster.create({
+        title: "Login Required",
+        description: "Please login to add to watchlist",
+        variant: "destructive",
+        type: "warning",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // No need to try catch here as it is already handled in the addToWatchList function
+    const data = {
+      id: details.id,
+      title: details.title || details.name,
+      poster_path: details.poster_path,
+      backdrop_path: details.backdrop_path,
+      vote_average: details.vote_average,
+      vote_count: details.vote_count,
+      release_date: details.release_date || details.first_air_date,
+      type: type,
+    };
+
+    await addToWatchList(data, user?.uid, details?.id?.toString());
+    setIsInWatchList(
+      await checkIfAlreadyInWatchList(user?.uid, details?.id?.toString())
+    );
+  };
+
+  const handleRemoveFromWatchList = async () => {
+    await removeFromWatchList(user?.uid.toString(), details?.id?.toString(), type);
+    setIsInWatchList(
+      await checkIfAlreadyInWatchList(user?.uid, details?.id?.toString())
+    );
+  }
+
+  console.log(details);
+  console.log(isInWatchList);
 
   return (
     <Box position="relative">
+      <Toaster />
       {/* Backdrop with gradient overlay */}
       <Box
         position="fixed"
@@ -205,29 +262,57 @@ function DetailsPage() {
             <FaPlayCircle size="20px" /> PLAY NOW
           </Box>
 
-          <Box
-            as="button"
-            bg="rgba(255, 255, 255, 0.1)"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            fontWeight="bold"
-            mt={4}
-            py={3}
-            px={6}
-            gap={2}
-            color="white"
-            borderRadius="full"
-            backdropFilter="blur(8px)"
-            _hover={{
-              bg: "rgba(255, 255, 255, 0.2)",
-              transform: "scale(1.02)",
-            }}
-            transition="all 0.2s"
-            cursor="pointer"
-          >
-            <MdOutlineBookmarkAdd size="20px" /> ADD TO WATCHLIST
-          </Box>
+          {isInWatchList ? (
+            <Box
+              as="button"
+              bg="rgba(255, 255, 255, 0.1)"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              fontWeight="bold"
+                onClick={handleRemoveFromWatchList}
+              mt={4}
+              py={3}
+              px={6}
+              gap={2}
+              color="white"
+              borderRadius="full"
+              backdropFilter="blur(8px)"
+              _hover={{
+                bg: "rgba(255, 255, 255, 0.2)",
+                transform: "scale(1.02)",
+              }}
+              transition="all 0.2s"
+              cursor="pointer"
+            >
+              <MdOutlineBookmarkAdd size="20px" /> REMOVE FROM WATCHLIST
+            </Box>
+          ) : (
+            <Box
+              as="button"
+              bg="rgba(255, 255, 255, 0.1)"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              fontWeight="bold"
+              onClick={handleAddToWatchList}
+              mt={4}
+              py={3}
+              px={6}
+              gap={2}
+              color="white"
+              borderRadius="full"
+              backdropFilter="blur(8px)"
+              _hover={{
+                bg: "rgba(255, 255, 255, 0.2)",
+                transform: "scale(1.02)",
+              }}
+              transition="all 0.2s"
+              cursor="pointer"
+            >
+              <MdOutlineBookmarkAdd size="20px" /> ADD TO WATCHLIST
+            </Box>
+          )}
 
           {details?.vote_average && (
             <Flex
@@ -316,7 +401,7 @@ function DetailsPage() {
                   </Text>
                 </Box>
                 {/* User Reviews */}
-                <Flex gap={2} mt={6} >
+                <Flex gap={2} mt={6}>
                   <Separator
                     orientation="vertical"
                     borderColor={"gray.500"}
@@ -324,35 +409,34 @@ function DetailsPage() {
                     height={"40px"}
                     mx={6}
                   />
-                 <Flex flexDirection={"column"} >
-                 <Box>
-                    <RatingGroup.Root
-                      readOnly
-                      allowHalf
-                      count={5}
-                      defaultValue={resolveStarRating(details.vote_average)}
-                      colorPalette={resolveStarRatingColor(
-                        details.vote_average
-                      )}
-                      size="sm"
-                    >
-                      <RatingGroup.HiddenInput />
-                      <RatingGroup.Control />
-                    </RatingGroup.Root>
-                  </Box>
+                  <Flex flexDirection={"column"}>
+                    <Box>
+                      <RatingGroup.Root
+                        readOnly
+                        allowHalf
+                        count={5}
+                        defaultValue={resolveStarRating(details.vote_average)}
+                        colorPalette={resolveStarRatingColor(
+                          details.vote_average
+                        )}
+                        size="sm"
+                      >
+                        <RatingGroup.HiddenInput />
+                        <RatingGroup.Control />
+                      </RatingGroup.Root>
+                    </Box>
 
-                  <Text color={'gray.300'} fontSize={'13px'} mt={-1}>
-                    {resolveRatingNumber(details.vote_count)}
-                  </Text>
+                    <Text color={"gray.300"} fontSize={"13px"} mt={-1}>
+                      {resolveRatingNumber(details.vote_count)}
+                    </Text>
 
-                  <Text color={'gray.600'} fontSize={'13px'} mt={1.5}>
+                    <Text color={"gray.600"} fontSize={"13px"} mt={1.5}>
                       User Reviews
                     </Text>
-                 </Flex>
-                 
+                  </Flex>
                 </Flex>
                 {/* Critics Review */}
-                <Flex gap={2} mt={6} >
+                <Flex gap={2} mt={6}>
                   <Separator
                     orientation="vertical"
                     borderColor={"gray.500"}
@@ -360,32 +444,31 @@ function DetailsPage() {
                     height={"40px"}
                     mx={6}
                   />
-                 <Flex flexDirection={"column"} >
-                 <Box>
-                    <RatingGroup.Root
-                      readOnly
-                      allowHalf
-                      count={5}
-                      defaultValue={resolveStarRating(details.vote_average)}
-                      colorPalette={resolveStarRatingColor(
-                        details.vote_average
-                      )}
-                      size="sm"
-                    >
-                      <RatingGroup.HiddenInput />
-                      <RatingGroup.Control />
-                    </RatingGroup.Root>
-                  </Box>
+                  <Flex flexDirection={"column"}>
+                    <Box>
+                      <RatingGroup.Root
+                        readOnly
+                        allowHalf
+                        count={5}
+                        defaultValue={resolveStarRating(details.vote_average)}
+                        colorPalette={resolveStarRatingColor(
+                          details.vote_average
+                        )}
+                        size="sm"
+                      >
+                        <RatingGroup.HiddenInput />
+                        <RatingGroup.Control />
+                      </RatingGroup.Root>
+                    </Box>
 
-                  <Text color={'gray.300'} fontSize={'13px'} mt={-1}>
-                    {details.vote_average.toFixed(1) / 2}
-                  </Text>
+                    <Text color={"gray.300"} fontSize={"13px"} mt={-1}>
+                      {details.popularity.toFixed(2)}
+                    </Text>
 
-                  <Text color={'gray.600'} fontSize={'13px'} mt={2}>
+                    <Text color={"gray.600"} fontSize={"13px"} mt={2}>
                       Critic Reviews
                     </Text>
-                 </Flex>
-                 
+                  </Flex>
                 </Flex>
               </Flex>
             )}

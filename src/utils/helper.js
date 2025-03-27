@@ -122,3 +122,40 @@ export const resolveRatingNumber = (rating) => {
   };
 
 
+// Format air date range for TV shows
+export const formatAirDateRange = (show) => {
+    if (!show) return "";
+
+    const firstAirYear = show.first_air_date
+      ? new Date(show.first_air_date).getFullYear()
+      : "";
+
+    const lastAirYear =
+      show.details && show.details.last_air_date
+        ? new Date(show.details.last_air_date).getFullYear()
+        : "";
+
+    const isOngoing =
+      show && show.details && show.details.in_production === true;
+
+    if (firstAirYear && lastAirYear && firstAirYear !== lastAirYear) {
+      return `${firstAirYear} - ${isOngoing ? "Present" : lastAirYear}`;
+    }
+
+    return firstAirYear || "";
+  };
+
+  
+  // Get season info display text
+  export const getSeasonInfo = (show) => {
+    if (!show.details) return "";
+
+    const seasons = show.details.number_of_seasons || 0;
+    const episodes = show.details.number_of_episodes || 0;
+
+    if (seasons === 0) return "";
+
+    return `${seasons} ${seasons === 1 ? "Season" : "Seasons"}, ${episodes} ${
+      episodes === 1 ? "Episode" : "Episodes"
+    }`;
+  };

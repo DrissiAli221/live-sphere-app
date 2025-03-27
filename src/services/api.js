@@ -131,3 +131,9 @@ export const fetchMovieVideos = async (id) => {
     const { data } = await axios.get(`${baseURL}/movie/${id}/videos?api_key=${apiKey}`);
     return data.results;
 }
+
+// Search All
+export const searchAll = async (query, page) => {
+    const { data } = await axios.get(`${baseURL}/search/multi?api_key=${apiKey}&query=${query}&page=${page}`);
+    return data;
+}

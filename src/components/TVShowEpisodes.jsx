@@ -37,6 +37,7 @@ const TVShowEpisodes = ({
   cardBg = "rgba(18, 18, 18, 0.8)",
 }) => {
   const [seasons, setSeasons] = useState([]);
+  const [details, setDetails] = useState({});
   const [selectedSeason, setSelectedSeason] = useState(1);
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +56,7 @@ const TVShowEpisodes = ({
           );
           setHasSpecials(!!specialsSeason);
           setSeasons(data.seasons);
+          setDetails(data);
         }
       } catch (error) {
         console.error("Error fetching TV details:", error);
@@ -198,7 +200,7 @@ const TVShowEpisodes = ({
                     left={0}
                     width="100%"
                     height="2px"
-                    borderRadius={'full'}
+                    borderRadius={"full"}
                     bg={accentColor}
                     boxShadow={`0 0 10px ${accentColor}`}
                     initial={{ opacity: 0, scaleX: 0 }}
@@ -356,18 +358,48 @@ const TVShowEpisodes = ({
                     variants={episodeVariants}
                   >
                     {/* Episode Thumbnail */}
-                    <Box position="relative" height="140px">
+                    <Box
+                      position="relative"
+                      height="140px"
+                      width="100%"
+                      borderRadius="lg"
+                      overflow="hidden"
+                    >
                       <Image
                         src={
-                          episode.still_path
+                          episode?.still_path
                             ? `${baseImageW500}${episode.still_path}`
-                            : comingSoon
+                            : `${baseImageW500}${
+                                details.backdrop_path || comingSoon
+                              }`
                         }
                         alt={episode.name}
                         width="100%"
                         height="100%"
                         objectFit="cover"
+                        opacity={!episode.still_path ? 0.4 : 1}
                       />
+
+                      {!episode.still_path && (
+                        <Flex
+                          position="absolute"
+                          top="0"
+                          left="0"
+                          right="0"
+                          bottom="0"
+                          justifyContent="center"
+                          alignItems="center"
+                          background="blackAlpha.600"
+                          color="white"
+                          fontSize="xl"
+                          fontWeight="bold"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
+                        >
+                          Coming Soon
+                        </Flex>
+                      )}
+
                       {/* Improved gradient overlay */}
                       <Box
                         position="absolute"

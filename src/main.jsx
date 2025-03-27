@@ -9,6 +9,11 @@ import Movies from './pages/movies/Movies'
 import Shows from './pages/tv/Shows'
 import Search from './pages/search/Search'
 import DeatailsPagev3 from '@/components/DetailsPagev3'
+import { AuthProvider } from './context/AuthProvider'
+import Login from './pages/Login'
+import Watchlist from './pages/Watchlist'
+import ProtectedRoute from './components/ProtectedRoute'
+
 
 const router = createBrowserRouter([
     {
@@ -34,6 +39,14 @@ const router = createBrowserRouter([
             {
                 path: '/:type/:id', //dynamic path
                 element: <DeatailsPagev3 />,
+            },
+            {
+                path: '/login',
+                element: <Login />,
+            },
+            {
+                path: '/watchlist',
+                element: <ProtectedRoute><Watchlist /></ProtectedRoute>,
             }
         ]
     }
@@ -43,7 +56,9 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
 
     <Provider>
+        <AuthProvider>
         <RouterProvider router={router} />
+        </AuthProvider>
     </Provider>
 
   </StrictMode>,

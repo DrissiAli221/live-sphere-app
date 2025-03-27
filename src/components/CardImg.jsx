@@ -1,7 +1,7 @@
 import { baseImageW500 } from '@/services/api'
 import { Link } from 'react-router-dom';
 import { Box, Flex, Image, Text } from '@chakra-ui/react';
-import { getLanguageName } from '@/services/details';
+import { getLanguageName } from '@/utils/details';
 
 const CardImg = ({ item , type }) => {
   return (

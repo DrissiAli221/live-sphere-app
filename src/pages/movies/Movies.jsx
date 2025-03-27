@@ -34,6 +34,8 @@ import {
 import { BsCalendarDate } from "react-icons/bs";
 import { convertMinutesToHours } from "@/utils/helper";
 import ContentGrid from "@/components/ContentGrid";
+import StreamingServiceSkeleton from "@/components/StreamingServiceSkeleton";
+import WhiteNoiseBackground from "@/components/WhiteNoiseBackground";
 
 // Create a motion-enabled component
 const MotionBox = motion.create(Box);
@@ -221,22 +223,9 @@ function Movies() {
   };
 
   // Loading state with improved UI
+
   if (loading) {
-    return (
-      <Flex
-        justify="center"
-        align="center"
-        height="100vh"
-        bgGradient="linear(to-b, gray.900, black)"
-        flexDirection="column"
-        gap={4}
-      >
-        <Spinner size="xl" color={accentColor} thickness="4px" />
-        <Text color="white" fontSize="lg">
-          Loading amazing movies for you...
-        </Text>
-      </Flex>
-    );
+    return <StreamingServiceSkeleton />;
   }
 
   // Helper function to truncate text
@@ -470,6 +459,7 @@ function Movies() {
                       }}
                       transition="all 0.2s"
                       px={5}
+                      mr={3}
                       fontWeight="bold"
                     >
                       Watch
@@ -582,36 +572,6 @@ function Movies() {
             <Heading size="lg" color="white">
               Featured {highlightedCategory} Movies
             </Heading>
-            {/* <HStack>
-              <IconButton
-                aria-label="Scroll left"
-                icon={<Box as="span">←</Box>}
-                variant="ghost"
-                color="white"
-                onClick={() => {
-                  if (carouselRef.current) {
-                    carouselRef.current.scrollBy({
-                      left: -400,
-                      behavior: "smooth",
-                    });
-                  }
-                }}
-              />
-              <IconButton
-                aria-label="Scroll right"
-                icon={<Box as="span">→</Box>}
-                variant="ghost"
-                color="white"
-                onClick={() => {
-                  if (carouselRef.current) {
-                    carouselRef.current.scrollBy({
-                      left: 400,
-                      behavior: "smooth",
-                    });
-                  }
-                }}
-              />
-            </HStack> */}
           </Flex>
 
           <Box
