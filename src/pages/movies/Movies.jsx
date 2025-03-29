@@ -36,6 +36,7 @@ import { convertMinutesToHours } from "@/utils/helper";
 import ContentGrid from "@/components/ContentGrid";
 import StreamingServiceSkeleton from "@/components/StreamingServiceSkeleton";
 import WhiteNoiseBackground from "@/components/WhiteNoiseBackground";
+import GrainyBackground from "@/components/GrainyBackground";
 
 // Create a motion-enabled component
 const MotionBox = motion.create(Box);
@@ -245,13 +246,13 @@ function Movies() {
         {randomMovie && hasValidBackdrop(randomMovie) && (
           <MotionBox
             key={randomMovie.id} // Important for AnimatePresence to track changes
-            position="fixed"
+            position="absolute"
+            width="full"
             top={0}
             left={0}
             right={0}
-            width="100vw"
             height="100vh"
-            zIndex={-1}
+            zIndex={-2}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -278,7 +279,14 @@ function Movies() {
 
       {/* Hero Content Section */}
       <Box position="relative" height="75vh" display="flex" alignItems="center">
-        <Container maxW="container.xl" height="100%" position="relative">
+        <Container
+          maxW="container.xl"
+          height="100%"
+          position="relative"
+          display="flex"
+          flexDirection="column"
+          justifyContent="center"
+        >
           <AnimatePresence mode="wait">
             {randomMovie && !isChangingMovie && (
               <MotionFlex
@@ -290,7 +298,6 @@ function Movies() {
                 pr={[2, 4, 8]}
                 pt="10vh"
                 pb={12}
-                mt={-14}
                 spacing={3}
                 position="relative"
                 initial={{ opacity: 0, y: 20 }}

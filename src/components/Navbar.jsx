@@ -24,7 +24,7 @@ const Navbar = () => {
   };
 
   return (
-    <Box>
+    <Box position="absolute" top={0} width='full' zIndex={100}>
       <Container
         maxW={"container.xl"}
         zIndex={100} // Higher than any other z-index in your app

@@ -46,6 +46,7 @@ import MovieDetailsPage from "./MovieDetailsPage";
 import { useAuth } from "@/context/AuthProvider";
 import { Toaster, toaster } from "@/components/ui/toaster";
 import { useFirestore } from "@/services/firestore";
+import { AnimatedWatchlistButton } from "./magicui/animated-subscribe-button";
 
 function DetailsPage() {
   const [details, setDetails] = useState({});
@@ -58,7 +59,8 @@ function DetailsPage() {
 
   const { type, id } = useParams();
   const { user } = useAuth();
-  const { addToWatchList, checkIfAlreadyInWatchList, removeFromWatchList } = useFirestore();
+  const { addToWatchList, checkIfAlreadyInWatchList, removeFromWatchList } =
+    useFirestore();
 
   // Color values for theme
   const accentColor = "#FEC34B";
@@ -168,11 +170,15 @@ function DetailsPage() {
   };
 
   const handleRemoveFromWatchList = async () => {
-    await removeFromWatchList(user?.uid.toString(), details?.id?.toString(), type);
+    await removeFromWatchList(
+      user?.uid.toString(),
+      details?.id?.toString(),
+      type
+    );
     setIsInWatchList(
       await checkIfAlreadyInWatchList(user?.uid, details?.id?.toString())
     );
-  }
+  };
 
   console.log(details);
   console.log(isInWatchList);
@@ -262,57 +268,11 @@ function DetailsPage() {
             <FaPlayCircle size="20px" /> PLAY NOW
           </Box>
 
-          {isInWatchList ? (
-            <Box
-              as="button"
-              bg="rgba(255, 255, 255, 0.1)"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              fontWeight="bold"
-                onClick={handleRemoveFromWatchList}
-              mt={4}
-              py={3}
-              px={6}
-              gap={2}
-              color="white"
-              borderRadius="full"
-              backdropFilter="blur(8px)"
-              _hover={{
-                bg: "rgba(255, 255, 255, 0.2)",
-                transform: "scale(1.02)",
-              }}
-              transition="all 0.2s"
-              cursor="pointer"
-            >
-              <MdOutlineBookmarkAdd size="20px" /> REMOVE FROM WATCHLIST
-            </Box>
-          ) : (
-            <Box
-              as="button"
-              bg="rgba(255, 255, 255, 0.1)"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              fontWeight="bold"
-              onClick={handleAddToWatchList}
-              mt={4}
-              py={3}
-              px={6}
-              gap={2}
-              color="white"
-              borderRadius="full"
-              backdropFilter="blur(8px)"
-              _hover={{
-                bg: "rgba(255, 255, 255, 0.2)",
-                transform: "scale(1.02)",
-              }}
-              transition="all 0.2s"
-              cursor="pointer"
-            >
-              <MdOutlineBookmarkAdd size="20px" /> ADD TO WATCHLIST
-            </Box>
-          )}
+          <AnimatedWatchlistButton
+            isInWatchList={isInWatchList}
+            handleAddToWatchlist={handleAddToWatchList}
+            handleRemoveFromWatchlist={handleRemoveFromWatchList}
+          />
 
           {details?.vote_average && (
             <Flex

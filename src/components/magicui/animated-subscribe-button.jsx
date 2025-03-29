@@ -1,98 +1,97 @@
+import React, { useCallback } from "react";
+import { Box } from "@chakra-ui/react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MdOutlineBookmarkAdd, MdOutlineBookmarkRemove } from "react-icons/md";
 
-import { clsx } from "clsx";
-import { AnimatePresence, motion } from "motion/react";
-import React, { useState } from "react";
+export const AnimatedWatchlistButton = React.memo(
+  ({
+    isInWatchList,
+    handleAddToWatchlist,
+    handleRemoveFromWatchlist,
+    ...props
+  }) => {
+    const handleClick = useCallback(() => {
+      // Prevent multiple rapid clicks
+      if (isInWatchList) {
+        handleRemoveFromWatchlist();
+      } else {
+        handleAddToWatchlist();
+      }
+    }, [isInWatchList, handleAddToWatchlist, handleRemoveFromWatchlist]);
 
-export const AnimatedSubscribeButton = React.forwardRef(
-  (
-    {
-      subscribeStatus = false,
-      onClick,
-      onSubscribe, // New prop for subscribing action
-      onUnsubscribe, // New prop for unsubscribing action
-      className,
-      children,
-      ...props
-    },
-    ref
-  ) => {
-    const [isSubscribed, setIsSubscribed] = useState(subscribeStatus);
-
-    // Ensure we only have two children, both of which should be <span> elements
-    if (
-      React.Children.count(children) !== 2 ||
-      !React.Children.toArray(children).every(
-        (child) => React.isValidElement(child) && child.type === "span"
-      )
-    ) {
-      throw new Error(
-        "AnimatedSubscribeButton expects two children, both of which must be <span> elements."
-      );
-    }
-
-    const childrenArray = React.Children.toArray(children);
-    const initialChild = childrenArray[0];
-    const changeChild = childrenArray[1];
-
-    // Apply the className from the parent component
     return (
       <AnimatePresence mode="wait">
-        {isSubscribed ? (
-          <motion.button
-            ref={ref}
-            className={clsx(
-              "relative flex h-10 w-fit items-center justify-center overflow-hidden rounded-lg bg-primary px-6 text-primary-foreground", // Default styles
-              className // Allow the className from the parent to be passed down
-            )}
-            onClick={(e) => {
-              setIsSubscribed(false);
-              onClick?.(e); // Call the general onClick if provided
-              onUnsubscribe?.(e); // Call the unsubscribe-specific handler
+        <Box
+          as={motion.button}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          whileTap={{ scale: 0.98 }}
+          bg={
+            isInWatchList
+              ? "rgba(239, 83, 80, 0.1)"
+              : "rgba(100, 181, 246, 0.1)"
+          }
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          fontWeight="bold"
+          onClick={handleClick}
+          mt={4}
+          py={3}
+          px={6}
+          gap={2}
+          color={isInWatchList ? "red.400" : "blue.400"}
+          borderRadius="full"
+          backdropFilter="blur(8px)"
+          border="2px solid"
+          borderColor={
+            isInWatchList
+              ? "rgba(239, 83, 80, 0.3)"
+              : "rgba(100, 181, 246, 0.3)"
+          }
+          _hover={{
+            bg: isInWatchList
+              ? "rgba(239, 83, 80, 0.2)"
+              : "rgba(100, 181, 246, 0.2)",
+            transform: "scale(1.02)",
+          }}
+          transition="all 0.2s"
+          cursor="pointer"
+          {...props}
+        >
+          <motion.div
+            key={isInWatchList ? "remove" : "add"}
+            initial={{
+              opacity: 0,
+              x: isInWatchList ? 50 : -50,
             }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            {...props}
-          >
-            <motion.span
-              key="action"
-              className="relative flex h-full w-full items-center justify-center font-semibold"
-              initial={{ y: -50 }}
-              animate={{ y: 0 }}
-            >
-              {changeChild} {/* Use children for subscribed state */}
-            </motion.span>
-          </motion.button>
-        ) : (
-          <motion.button
-            ref={ref}
-            className={clsx(
-              "relative flex h-10 w-fit cursor-pointer items-center justify-center rounded-lg border-none bg-primary px-6 text-primary-foreground", // Default styles
-              className // Allow the className from the parent to be passed down
-            )}
-            onClick={(e) => {
-              setIsSubscribed(true);
-              onClick?.(e); // Call the general onClick if provided
-              onSubscribe?.(e); // Call the subscribe-specific handler
+            animate={{
+              opacity: 1,
+              x: 0,
             }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            {...props}
+            exit={{
+              opacity: 0,
+              x: isInWatchList ? -50 : 50,
+              transition: { duration: 0.1 },
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+            }}
           >
-            <motion.span
-              key="reaction"
-              className="relative flex items-center justify-center font-semibold"
-              initial={{ x: 0 }}
-              exit={{ x: 50, transition: { duration: 0.1 } }}
-            >
-              {initialChild} {/* Use children for unsubscribed state */}
-            </motion.span>
-          </motion.button>
-        )}
+            {isInWatchList ? (
+              <MdOutlineBookmarkRemove size="20px" />
+            ) : (
+              <MdOutlineBookmarkAdd size="20px" />
+            )}
+            {isInWatchList ? "REMOVE FROM WATCHLIST" : "ADD TO WATCHLIST"}
+          </motion.div>
+        </Box>
       </AnimatePresence>
     );
   }
 );
 
-AnimatedSubscribeButton.displayName = "AnimatedSubscribeButton";
+AnimatedWatchlistButton.displayName = "AnimatedWatchlistButton";

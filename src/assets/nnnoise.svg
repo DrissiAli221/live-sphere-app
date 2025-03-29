@@ -1,0 +1,18 @@
+<svg id="noice" width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <filter id="noise-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="4" stitchTiles="stitch"></feTurbulence>
+        <feColorMatrix type="saturate" values="0"></feColorMatrix>
+        <feComponentTransfer>
+            <feFuncR type="linear" slope="0.28"></feFuncR>
+            <feFuncG type="linear" slope="0.28"></feFuncG>
+            <feFuncB type="linear" slope="0.28"></feFuncB>
+            <feFuncA type="linear" slope="0.38"></feFuncA>
+        </feComponentTransfer>
+        <feComponentTransfer>
+            <feFuncR type="linear" slope="0.81" intercept="0.09"/>
+            <feFuncG type="linear" slope="0.81" intercept="0.09"/>
+            <feFuncB type="linear" slope="0.81" intercept="0.09"/>
+        </feComponentTransfer>
+    </filter>
+    <rect width="100%" height="100%" filter="url(#noise-filter)"></rect>
+</svg>
