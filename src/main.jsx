@@ -13,7 +13,6 @@ import { AuthProvider } from "./context/AuthProvider";
 import Login from "./pages/Login";
 import Watchlist from "./pages/Watchlist";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Test from "./components/Test";
 
 const router = createBrowserRouter([
   {
@@ -43,10 +42,6 @@ const router = createBrowserRouter([
       {
         path: "/login",
         element: <Login />,
-      },
-      {
-        path: "/test",
-        element: <Test />,
       },
       {
         path: "/watchlist",

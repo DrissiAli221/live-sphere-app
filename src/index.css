@@ -1,8 +1,15 @@
 @import url("https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap");
-@import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Spline+Sans+Mono:wght@400;700&display=swap");
 
+@import "tailwindcss";
 * {
   font-family: Oswald, sans-serif;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
 }
 
 /* .noisy-background {
@@ -42,10 +49,21 @@
 
 /* Smooth layout transitions */
 [data-chakra-component="MotionBox"] {
-    will-change: transform, opacity;
+  will-change: transform, opacity;
+}
+
+/* Prevent button height changes */
+.group\/btn {
+  min-height: 40px;
+}
+
+/* Add this to your global CSS or theme setup */
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
   }
-  
-  /* Prevent button height changes */
-  .group\/btn {
-    min-height: 40px;
+  100% {
+    /* Move left by exactly the width of ONE set of logos */
+    transform: translateX(-50%);
   }
+}

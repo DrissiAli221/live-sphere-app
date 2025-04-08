@@ -3,6 +3,7 @@ import axios from "axios";
 // Base URL for images
 export const baseImageW500 = "https://image.tmdb.org/t/p/w500";
 export const baseImageOriginal = "https://image.tmdb.org/t/p/original";
+export const baseImageW780 = "https://image.tmdb.org/t/p/w780";
 
 // Base URL for making requests to the movie database
 const baseURL = "https://api.themoviedb.org/3";
@@ -120,7 +121,7 @@ export const fetchTVRecommendations = async () => {
     return data.results;
 }
 
-// fetch fetch Similar Movies
+// fetch Similar Movies
 export const fetchSimilarMovies = async (id) => {
     const { data } = await axios.get(`${baseURL}/movie/${id}/similar?api_key=${apiKey}`);
     return data.results;
@@ -137,3 +138,10 @@ export const searchAll = async (query, page) => {
     const { data } = await axios.get(`${baseURL}/search/multi?api_key=${apiKey}&query=${query}&page=${page}`);
     return data;
 }
+
+// fetch popular people
+export const fetchPopularPeople = async () => {
+    const { data } = await axios.get(`${baseURL}/person/popular?api_key=${apiKey}`);
+    return data.results;
+}
+

@@ -1,26 +1,102 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Box, Image, Text, Flex, Badge } from "@chakra-ui/react";
+import { Box, Image, Text, Flex } from "@chakra-ui/react"; // Badge no longer needed
 import { FaStar } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence, useSpring } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { baseImageW500, fetchTrailers } from "@/services/api";
+import { truncateText } from "@/utils/helper";
 
-const MotionBox = motion.create(Box);
+// --- Placeholder Genre Map ---
+// You should replace this with your actual genre data source (Context, Redux, fetched data)
+const ALL_GENRES_MAP = {
+  28: "Action",
+  12: "Adventure",
+  16: "Animation",
+  35: "Comedy",
+  80: "Crime",
+  99: "Documentary",
+  18: "Drama",
+  10751: "Family",
+  14: "Fantasy",
+  36: "History",
+  27: "Horror",
+  10402: "Music",
+  9648: "Mystery",
+  10749: "Romance",
+  878: "Sci-Fi",
+  53: "Thriller",
+  10752: "War",
+  37: "Western",
+  // TV Genres
+  10759: "Action & Adventure",
+  10762: "Kids",
+  10763: "News",
+  10764: "Reality",
+  10765: "Sci-Fi & Fantasy",
+  10766: "Soap",
+  10767: "Talk",
+  10768: "War & Politics",
+};
+// -----------------------------
 
-const ContentGrid = ({ item, index, contentType, baseImageOriginal }) => {
+// --- Motion Component ---
+const MotionBox = motion(Box);
+const MotionText = motion(Text);
+
+// --- Reusable Sketchy Line (straight) --- (Optional - Keep if used elsewhere or remove if not needed)
+const SketchyLine = ({
+  orientation = "horizontal",
+  size = "10px",
+  thickness = "1px",
+  color = "#FFEC44",
+  offset = "1px",
+  ...rest
+}) => (
+  <Box
+    position="absolute"
+    width={orientation === "horizontal" ? size : thickness}
+    height={orientation === "vertical" ? size : thickness}
+    bg={color}
+    transform={
+      orientation === "horizontal"
+        ? `translateY(${offset})`
+        : `translateX(${offset})`
+    }
+    opacity={0.7}
+    {...rest}
+  />
+);
+
+// --- Main Component ---
+export default function ContentGrid({
+  item,
+  index,
+  contentType,
+  genreMap = ALL_GENRES_MAP, // Use the map provided or the default placeholder
+}) {
   const [trailerData, setTrailerData] = useState(null);
   const [isHovering, setIsHovering] = useState(false);
   const [trailerLoaded, setTrailerLoaded] = useState(false);
   const [trailerError, setTrailerError] = useState(false);
-  const [hoverTimeout, setHoverTimeout] = useState(null);
-  const [showFullTrailer, setShowFullTrailer] = useState(false);
-  const videoRef = useRef(null);
-  const accentColor = "";
-  const cardAccentColor = accentColor;
-  const cardAccentColorDark = accentColor;
+  const [hoverTimeoutId, setHoverTimeoutId] = useState(null);
+  const [exitTimeoutId, setExitTimeoutId] = useState(null);
 
+  const videoRef = useRef(null);
+
+  // --- Theme Colors ---
+  const themeBlack = "#000000";
+  const themeDark = "#121212";
+  const themeYellow = "#FFEC44";
+  const themeBorder = "#444";
+  const themeText = "whiteAlpha.900";
+  const themeSubtleText = "whiteAlpha.700";
+
+  // --- Fetch Trailer (unchanged) ---
   useEffect(() => {
     const fetchData = async () => {
+      setTrailerData(null);
+      setTrailerLoaded(false);
+      setTrailerError(false);
       try {
         const data = await fetchTrailers(contentType, item.id);
         setTrailerData(data);
@@ -32,27 +108,38 @@ const ContentGrid = ({ item, index, contentType, baseImageOriginal }) => {
     fetchData();
   }, [item.id, contentType]);
 
+  // --- Cleanup Timeouts (unchanged) ---
   useEffect(() => {
     return () => {
-      if (hoverTimeout) clearTimeout(hoverTimeout);
+      if (hoverTimeoutId) clearTimeout(hoverTimeoutId);
+      if (exitTimeoutId) clearTimeout(exitTimeoutId);
     };
-  }, [hoverTimeout]);
+  }, [hoverTimeoutId, exitTimeoutId]);
 
-  useEffect(() => {
-    let timeout;
-    if (isHovering && trailerLoaded) {
-      timeout = setTimeout(() => {
-        setShowFullTrailer(true);
-      }, 400); // Slightly longer delay for smoother transition
-    } else {
-      setShowFullTrailer(false);
-    }
+  // --- Hover Handling (unchanged) ---
+  const handleMouseEnter = () => {
+    if (exitTimeoutId) clearTimeout(exitTimeoutId);
+    const id = setTimeout(() => setIsHovering(true), 200);
+    setHoverTimeoutId(id);
+  };
 
-    return () => {
-      if (timeout) clearTimeout(timeout);
-    };
-  }, [isHovering, trailerLoaded]);
+  const handleMouseLeave = () => {
+    if (hoverTimeoutId) clearTimeout(hoverTimeoutId);
+    setIsHovering(false);
+    const exitId = setTimeout(() => {
+      setTrailerLoaded(false);
+    }, 300);
+    setExitTimeoutId(exitId);
+  };
 
+  // --- Video Status (unchanged) ---
+  const handleVideoLoad = () => setTrailerLoaded(true);
+  const handleVideoError = () => {
+    setTrailerError(true);
+    setTrailerLoaded(false);
+  };
+
+  // --- Data Prep ---
   const trailerKey = trailerData?.[0]?.key;
   const hasTrailer = !!trailerKey && !trailerError;
 
@@ -60,417 +147,333 @@ const ContentGrid = ({ item, index, contentType, baseImageOriginal }) => {
     ? `${baseImageW500}${item.backdrop_path}`
     : item.poster_path
     ? `${baseImageW500}${item.poster_path}`
-    : "https://via.placeholder.com/300x450?text=No+Image";
+    : "https://via.placeholder.com/500x281?text=NO+IMAGE";
 
-  const handleMouseEnter = () => {
-    const timeout = setTimeout(() => setIsHovering(true), 300); // Reduced delay for more responsive hover
-    setHoverTimeout(timeout);
-  };
+  // --- Map Genre IDs to Names ---
+  const displayedGenres = (item.genre_ids || [])
+    .map((id) => genreMap[id])
+    .filter(Boolean)
+    .slice(0, 2); // Show max 2 genres
 
-  const handleMouseLeave = () => {
-    clearTimeout(hoverTimeout);
-    setIsHovering(false);
-    setTimeout(() => {
-      setTrailerLoaded(false);
-      setShowFullTrailer(false);
-    }, 400); // Increased delay for smoother exit
-  };
-
-  const handleVideoLoad = () => setTrailerLoaded(true);
-  const handleVideoError = () => setTrailerError(true);
-
-  // Smoother spring configuration
-  const springConfig = {
-    type: "spring",
-    stiffness: 200, // Reduced stiffness for smoother motion
-    damping: 25, // Adjusted damping for smoother oscillation
-    mass: 1.2, // Added mass for more inertia
-  };
-
-  // Smoother transition for general animations
-  const smoothTransition = {
-    type: "tween",
-    ease: "easeInOut", // Smoother easing function
-    duration: 0.5, // Slightly longer duration
-  };
-
+  // --- Animation Definitions (unchanged) ---
+  const cardTransition = { type: "tween", duration: 0.2, ease: "easeOut" };
+  const contentTransition = { type: "tween", duration: 0.15, ease: "linear" };
   const cardVariants = {
     initial: {
       scale: 1,
       zIndex: 1,
+      border: `1px solid ${themeBorder}`,
+      boxShadow: `2px 2px 0px 0px #0a0a0a`,
     },
     hover: {
-      scale: 1.3,
-      zIndex: 100,
+      scale: 1.02,
+      zIndex: 10,
+      border: `1px solid ${themeYellow}`,
+      boxShadow: `3px 3px 0px 0px #111`,
       transition: {
-        ...springConfig,
-        scale: {
-          ...springConfig,
-          duration: 0.6, // Slightly longer scale duration
-        },
+        ...cardTransition,
+        boxShadow: { delay: 0, duration: 0.1 },
+        border: { delay: 0, duration: 0.1 },
       },
     },
   };
-
-  const contentVariants = {
+  const infoContentVariants = {
     visible: {
       opacity: 1,
-      y: 0,
       height: "auto",
-      scale: 1,
-      transition: {
-        height: { duration: 0.4, ease: "easeOut" },
-        opacity: { duration: 0.3, ease: "easeInOut" },
-      },
-      overflow: "hidden",
+      y: 0,
+      transition: contentTransition,
     },
     hidden: {
       opacity: 0,
-      height: "0px",
-      scale: 1,
-      margin: 0,
-      padding: 0,
-      transition: {
-        height: { duration: 0.4, delay: 0.1, ease: "easeIn" },
-        opacity: { duration: 0.3, ease: "easeInOut" },
-        margin: { duration: 0.4 },
-        padding: { duration: 0.4 },
-      },
-      overflow: "hidden",
+      height: 0,
+      y: 5,
+      transition: { ...contentTransition, delay: 0 },
     },
   };
 
-  const badgeVariants = {
-    visible: {
-      opacity: 1,
-      transition: { duration: 0.3, ease: "easeInOut" },
-    },
-    hidden: {
-      opacity: 0,
-      transition: { duration: 0.3, ease: "easeInOut" },
-    },
+  // Common font style
+  const sketchyFontStyle = {
+    fontFamily: "'Courier New', monospace",
+    textTransform: "uppercase",
   };
 
   return (
+    // --- Main Card Container ---
     <MotionBox
       as={Link}
       to={`/${contentType === "movie" ? "movie" : "tv"}/${item.id}`}
       key={item.id}
-      borderRadius="2xl"
+      borderRadius={0}
       overflow="visible"
-      bg="rgba(17, 25, 40, 0.75)"
-      height="100%"
-      maxHeight="400px"
-      boxShadow="lg"
+      bg={themeBlack}
       position="relative"
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{
         opacity: 1,
         y: 0,
         transition: {
-          ...smoothTransition,
-          delay: index * 0.07, // Slightly faster staggered animation
+          type: "tween",
+          ease: "easeOut",
+          duration: 0.3,
+          delay: index * 0.05,
         },
       }}
-      transition={smoothTransition}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
       variants={cardVariants}
       whileHover="hover"
-      _hover={{ boxShadow: "dark-lg" }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      display="flex"
+      flexDirection="column"
+      height="100%"
+      _focus={{ outline: "none", boxShadow: "none" }}
+      _focusVisible={{ outline: `2px dashed ${themeYellow}` }}
     >
+      {/* --- Image/Video Area --- */}
       <Box
-        p={1.5}
-        height="100%"
-        display="grid"
-        gridTemplateRows={
-          showFullTrailer && isHovering && hasTrailer && trailerLoaded
-            ? "1fr"
-            : "1fr auto"
-        }
-        gap={2}
-        transition="all 0.5s cubic-bezier(0.25, 0.1, 0.25, 1)" // More refined transition curve
+        position="relative"
+        overflow="hidden"
+        aspectRatio="16 / 9"
+        width="100%"
+        borderBottom={`1px solid ${themeBorder}`}
       >
-        {/* Poster Container */}
-        <Box
-          position="relative"
-          borderRadius="xl"
-          overflow="hidden"
-          transition="all 0.5s cubic-bezier(0.25, 0.1, 0.25, 1)" // More refined transition curve
-        >
-          <Image
-            src={posterUrl}
-            alt={item.title || item.name}
-            height="100%"
-            width="100%"
-            objectFit="cover"
-            borderRadius="xl"
-            fallbackSrc="https://via.placeholder.com/300x450?text=No+Image"
-            style={{
-              opacity: isHovering && hasTrailer && trailerLoaded ? 0 : 1,
-              transition: "opacity 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)", // Smoother opacity transition
-            }}
-          />
+        {/* --- Static Poster Image --- */}
+        <Image
+          src={posterUrl}
+          alt={item.title || item.name}
+          height="100%"
+          width="100%"
+          objectFit="cover"
+          borderRadius={0}
+          fallbackSrc="https://via.placeholder.com/500x281?text=NO+IMAGE"
+          style={{
+            opacity: isHovering && hasTrailer && trailerLoaded ? 0 : 1,
+            transition: "opacity 0.3s linear",
+            position: "absolute",
+            top: 0,
+            left: 0,
+          }}
+        />
 
-          <AnimatePresence>
-            {isHovering && hasTrailer && (
-              <MotionBox
-                position="absolute"
-                top={0}
-                left={0}
-                width="100%"
-                height="100%"
-                initial={{ opacity: 0, scale: 1.05, zIndex: 10 }}
-                animate={{
-                  opacity: 1,
-                  scale: 1,
-                  zIndex: 50,
-                  transition: {
-                    opacity: {
-                      delay: 0.2,
-                      duration: 0.6, // Longer fade-in
-                      ease: "easeOut",
-                    },
-                    scale: {
-                      duration: 0.8, // Longer scale animation
-                      ease: "easeOut",
-                    },
-                  },
-                }}
-                exit={{
-                  opacity: 0,
-                  scale: 1,
-                  transition: {
-                    duration: 0.5,
-                    ease: "easeInOut",
-                  },
-                }}
-                borderRadius="xl"
-                overflow="visible"
-                zIndex={20}
-                transformOrigin="center center"
-                style={{
-                  aspectRatio: "16/9",
-                }}
-              >
-                <Box
-                  as="div"
-                  position="relative"
-                  width="100%"
-                  height="100%"
-                  borderRadius="xl"
-                  boxShadow="0px 10px 30px -5px rgba(0, 0, 0, 0.5)"
-                  padding="4px" // Add equal padding all around
-                >
-                  <iframe
-                    ref={videoRef}
-                    src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&controls=0&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&playsinline=1`}
-                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: "100%",
-                      border: "none",
-                      borderRadius: "12px",
-                      pointerEvents: "none",
-                      opacity: trailerLoaded ? 1 : 0,
-                      transition: "opacity 1s ease-in-out", // Smoother fade-in for the trailer
-                    }}
-                    onLoad={handleVideoLoad}
-                    onError={handleVideoError}
-                    title={`${item.title || item.name} trailer`}
-                  />
-                  <Box
-                    position="absolute"
-                    top={0}
-                    left={0}
-                    right={0}
-                    bottom={0}
-                    zIndex={3}
-                    borderRadius="xl"
-                  />
-                </Box>
-              </MotionBox>
-            )}
-          </AnimatePresence>
-
-          <Box
-            position="absolute"
-            top={0}
-            left={0}
-            right={0}
-            bottom={0}
-            bgGradient={`linear(to-t, ${
-              cardAccentColorDark || "rgba(0,0,0,0.8)"
-            } 0%, rgba(0,0,0,0) 70%)`}
-            borderRadius="xl"
-            zIndex={4}
-          />
-
-          <MotionBox
-            position="absolute"
-            top={2}
-            right={2}
-            zIndex={5}
-            variants={badgeVariants}
-            animate={isHovering ? "hidden" : "visible"}
-          >
-            <Badge
-              bg="rgba(0,0,0,0.75)"
-              backdropFilter="blur(4px)"
-              px={2}
-              py={1}
-              borderRadius="full"
-              display="flex"
-              alignItems="center"
-              borderColor={cardAccentColor}
-            >
-              <Box as={FaStar} color="yellow.400" fontSize="10px" mr={1} />
-              <Text fontSize="11px" color="gray.300">
-                {item.vote_average?.toFixed(1) || "N/A"}
-              </Text>
-            </Badge>
-          </MotionBox>
-
-          {(item.release_date || item.first_air_date) && (
+        {/* --- Trailer Overlay --- */}
+        <AnimatePresence>
+          {isHovering && hasTrailer && (
             <MotionBox
+              key="trailer-box"
               position="absolute"
-              top={2}
-              left={2}
-              zIndex={5}
-              variants={badgeVariants}
-              animate={isHovering ? "hidden" : "visible"}
+              top={0}
+              left={0}
+              right={0}
+              bottom={0}
+              bg={themeBlack}
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: 1,
+                transition: { duration: 0.3, delay: 0.1 },
+              }}
+              exit={{ opacity: 0, transition: { duration: 0.2 } }}
+              overflow="hidden"
+              borderRadius={0}
             >
-              <Badge
-                bg="rgba(0,0,0,0.75)"
-                backdropFilter="blur(4px)"
-                px={2}
-                py={1}
-                borderRadius="full"
-                fontSize="10px"
-                fontWeight="medium"
-                color="gray.300"
-                borderWidth="1px"
-                borderColor={cardAccentColor}
-              >
-                {(item.release_date || item.first_air_date).substring(0, 4)}
-              </Badge>
-            </MotionBox>
-          )}
-
-          <AnimatePresence>
-            {isHovering && !trailerLoaded && (
-              <MotionBox
-                position="absolute"
-                width="100%"
-                height="100%"
-                top={0}
-                left={0}
-                display="flex"
-                justifyContent="center"
-                alignItems="center"
-                bg="rgba(0,0,0,0.3)"
-                borderRadius="xl"
-                zIndex={5}
-                initial={{ opacity: 0 }}
-                animate={{
-                  opacity: 1,
-                  transition: {
-                    duration: 0.5,
-                    ease: "easeOut",
-                  },
-                }}
-                exit={{
-                  opacity: 0,
-                  transition: {
-                    duration: 0.4,
-                    ease: "easeIn",
-                  },
-                }}
-              >
-                <MotionBox
-                  width="50px"
-                  height="50px"
-                  borderRadius="full"
-                  bg="rgba(255, 255, 255, 0.2)"
-                  display="flex"
+              {/* Loading state */}
+              {!trailerLoaded && !trailerError && (
+                <Flex
+                  position="absolute"
+                  inset="0"
+                  bg={themeBlack}
+                  color={themeYellow}
                   alignItems="center"
                   justifyContent="center"
-                  backdropFilter="blur(4px)"
-                  initial={{ scale: 0.8, opacity: 0.7 }}
-                  animate={{
-                    scale: 1,
-                    opacity: 1,
-                    transition: {
-                      ...springConfig,
-                      duration: 0.6,
-                    },
-                  }}
-                  whileHover={{
-                    scale: 1.1,
-                    transition: { ...springConfig, duration: 0.4 },
-                  }}
+                  {...sketchyFontStyle}
+                  fontSize="xs"
                 >
+                  LOADING...
+                </Flex>
+              )}
+              {/* Iframe */}
+              <iframe
+                ref={videoRef}
+                src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&controls=0&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&playsinline=1&mute=0`}
+                allow="autoplay; encrypted-media;"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                  opacity: trailerLoaded ? 1 : 0,
+                  transition: "opacity 0.5s ease-in",
+                  pointerEvents: "none",
+                }}
+                onLoad={handleVideoLoad}
+                onError={handleVideoError}
+                title={`${item.title || item.name} trailer preview`}
+              />
+              {/* Optional straight sketchy lines */}
+              <SketchyLine
+                orientation="horizontal"
+                size="30%"
+                top="10%"
+                left="5%"
+                offset="1px"
+                thickness="1px"
+                color="rgba(255, 236, 68, 0.2)"
+              />
+              <SketchyLine
+                orientation="vertical"
+                size="40%"
+                bottom="15%"
+                right="8%"
+                offset="-1px"
+                thickness="1px"
+                color="rgba(255, 236, 68, 0.15)"
+              />
+            </MotionBox>
+          )}
+        </AnimatePresence>
+
+        {/* --- Corner Badges/Info --- */}
+        <AnimatePresence>
+          {!isHovering && (
+            <>
+              {/* Rating Badge */}
+              <MotionBox
+                key="rating-badge"
+                position="absolute"
+                top="0"
+                right="0"
+                bg={themeBlack}
+                borderLeft={`1px solid ${themeBorder}`}
+                borderBottom={`1px solid ${themeBorder}`}
+                px="2"
+                py="1"
+                initial={{ opacity: 0, x: 5 }}
+                animate={{ opacity: 1, x: 0, transition: cardTransition }}
+                exit={{ opacity: 0, x: 5, transition: { duration: 0.1 } }}
+              >
+                <Flex align="center">
+                  <Box
+                    as={FaStar}
+                    color={themeYellow}
+                    fontSize="10px"
+                    mr="1.5"
+                  />
+                  <Text
+                    fontSize="11px"
+                    color={themeSubtleText}
+                    {...sketchyFontStyle}
+                    letterSpacing="tight"
+                  >
+                    {item.vote_average?.toFixed(1) || "N/A"}
+                  </Text>
+                </Flex>
+              </MotionBox>
+              {/* Year Badge */}
+              {(item.release_date || item.first_air_date) && (
+                <MotionBox
+                  key="year-badge"
+                  position="absolute"
+                  top="0"
+                  left="0"
+                  bg={themeBlack}
+                  borderRight={`1px solid ${themeBorder}`}
+                  borderBottom={`1px solid ${themeBorder}`}
+                  px="2"
+                  py="1"
+                  initial={{ opacity: 0, x: -5 }}
+                  animate={{ opacity: 1, x: 0, transition: cardTransition }}
+                  exit={{ opacity: 0, x: -5, transition: { duration: 0.1 } }}
+                >
+                  <Text
+                    fontSize="11px"
+                    color={themeSubtleText}
+                    {...sketchyFontStyle}
+                    letterSpacing="tight"
+                  >
+                    {(item.release_date || item.first_air_date).substring(0, 4)}
+                  </Text>
+                </MotionBox>
+              )}
+            </>
+          )}
+        </AnimatePresence>
+      </Box>
+
+      {/* --- Info Section --- */}
+      <MotionBox
+        px="2"
+        py="1.5"
+        variants={infoContentVariants}
+        initial="visible"
+        animate={
+          isHovering && hasTrailer && trailerLoaded ? "hidden" : "visible"
+        }
+        overflow="hidden"
+        bg={themeDark}
+        borderTop={`1px solid ${themeBorder}`} // Kept border for separation
+      >
+        {/* Title */}
+        <MotionText
+          color={themeText}
+          fontWeight="bold"
+          fontSize="xs"
+          noOfLines={1}
+          mb="1" // Keep margin bottom for title
+          {...sketchyFontStyle}
+        >
+          {truncateText(item.title || item.name, 32)}
+        </MotionText>
+
+        {/* Genres Display */}
+        <Flex
+          flexWrap="nowrap"
+          gap="1.5"
+          overflow="hidden"
+          alignItems="center"
+          h="14px"
+        >
+          {" "}
+          {/* Fixed height */}
+          {displayedGenres.length > 0 ? (
+            displayedGenres.map((genreName, i, arr) => (
+              <React.Fragment key={genreName + i}>
+                <Text
+                  color={themeSubtleText}
+                  fontSize="10px"
+                  {...sketchyFontStyle}
+                  letterSpacing="normal"
+                  whiteSpace="nowrap"
+                >
+                  {genreName}
+                </Text>
+                {i < arr.length - 1 && ( // Show separator only between genres
                   <Box
                     as="span"
-                    borderLeft="18px solid white"
-                    borderTop="12px solid transparent"
-                    borderBottom="12px solid transparent"
-                    ml={1}
-                  />
-                </MotionBox>
-              </MotionBox>
-            )}
-          </AnimatePresence>
-        </Box>
-
-        {/* Info Container */}
-        <MotionBox
-          variants={contentVariants}
-          initial="visible"
-          animate={
-            isHovering && hasTrailer && trailerLoaded ? "hidden" : "visible"
-          }
-          exit="hidden"
-          //   style={{ gridRow: 2 }}
-          px={3}
-          py={2}
-          overflow="hidden"
-        >
-          <Text
-            color="white"
-            fontWeight="bold"
-            fontSize="sm"
-            noOfLines={1}
-            mb={1}
-          >
-            {item.title || item.name}
-          </Text>
-          <Flex mb={1} flexWrap="wrap" gap={1}>
-            {item.details?.genres?.slice(0, 3).map((genre, i, arr) => (
-              <Text
-                key={i}
-                color="gray.400"
-                fontSize="2xs"
-                py={0.5}
-                textTransform="uppercase"
-              >
-                {genre.name}
-                {i < arr.length - 1 && (
-                  <Text as="span" mx={2} fontWeight="bold">
+                    color={themeYellow}
+                    alignItems="center"
+                    fontWeight="bold"
+                    fontSize="10px"
+                    mx="0.5"
+                    lineHeight="10px"
+                  >
                     •
-                  </Text>
+                  </Box>
                 )}
-              </Text>
-            ))}
-          </Flex>
-        </MotionBox>
-      </Box>
+              </React.Fragment>
+            ))
+          ) : (
+            <Text
+              color={themeSubtleText}
+              fontSize="10px"
+              {...sketchyFontStyle}
+              letterSpacing="normal"
+            >
+              -
+            </Text>
+          )}
+        </Flex>
+      </MotionBox>
     </MotionBox>
   );
-};
-
-export default ContentGrid;
+}

@@ -13,7 +13,9 @@ import {
   doc,
   setDoc,
 } from "firebase/firestore";
-import { toaster } from "@/components/ui/toaster";
+
+import toast from "react-hot-toast";
+
 import { useCallback } from "react";
 
 export const useFirestore = () => {
@@ -22,51 +24,40 @@ export const useFirestore = () => {
     const docRef = await addDoc(collection(db, collectionName), data);
     console.log("Document written with ID: ", docRef.id);
   };
- 
+
   // Add a document to the watchlist
   const addToWatchList = async (data, userId, dataId) => {
     try {
       if (await checkIfAlreadyInWatchList(userId, dataId)) {
-        toaster.create({
-          title: "Already in watchlist",
-          description: `This ${
-            data.type === "movie" ? "Movie" : "Show"
-          } is already in your watchlist`,
-          variant: "destructive",
-          type: "warning",
-          duration: 3000,
-          isClosable: true,
-        });
+        toast("Item already in watchlist", { type: "warning" });
         return;
       }
       // Database structure: userCollection -> userId -> watchlist -> movieId -> data
       await setDoc(
-        doc(db, "userCollection", userId?.toString(), "watchlist", dataId?.toString()),
+        doc(
+          db,
+          "userCollection",
+          userId?.toString(),
+          "watchlist",
+          dataId?.toString()
+        ),
         data
       );
-      toaster.create({
-        title: "Success",
-        description: "Added to watchlist",
-        variant: "success",
-        duration: 3000,
-        type: "success",
-        isClosable: true,
-      });
+      toast.success("Item Added to watchlist");
     } catch (error) {
-      toaster.create({
-        title: "Error Occured",
-        description: "Failed to add to watchlist",
-        variant: "destructive",
-        duration: 3000,
-        type: "error",
-        isClosable: true,
-      });
+      toast.error("Error Occured");
     }
   };
 
   // Check if a document exists in the watchlist
   const checkIfAlreadyInWatchList = async (userId, dataId) => {
-    const docRef = doc(db, "userCollection", userId?.toString(), "watchlist", dataId?.toString());
+    const docRef = doc(
+      db,
+      "userCollection",
+      userId?.toString(),
+      "watchlist",
+      dataId?.toString()
+    );
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
@@ -86,34 +77,22 @@ export const useFirestore = () => {
         dataId?.toString()
       );
       await deleteDoc(docRef);
-      toaster.create({
-        title: "Removed from watchlist",
-        description: `The ${
-          type === "movie" ? "Movie" : "Show"
-        } has been removed from your watchlist`,
-        variant: "success",
-        duration: 3000,
-        type: "success",
-      });
+      toast("Item removed from watchlist", { type: "warning" });
     } catch (error) {
-      toaster.create({
-        title: "Error Occured",
-        description: "Failed to remove from watchlist",
-        variant: "destructive",
-        duration: 3000,
-        type: "error",
-      });
+      toast.error("Error Occured");
     }
   };
 
   // Get all documents from the watchlist
   const getWatchList = useCallback(async (userId) => {
-      const querySnapshot = await getDocs(collection(db, "userCollection", userId?.toString(), "watchlist"));
-      const watchlist = querySnapshot.docs.map((doc) => ({
-        ...doc.data(),
-      }));
-      return watchlist;
-  }, [])
+    const querySnapshot = await getDocs(
+      collection(db, "userCollection", userId?.toString(), "watchlist")
+    );
+    const watchlist = querySnapshot.docs.map((doc) => ({
+      ...doc.data(),
+    }));
+    return watchlist;
+  }, []);
   return {
     addDocument,
     addToWatchList,

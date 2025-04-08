@@ -1,0 +1,105 @@
+export const watchProviders = [
+  {
+    name: "Netflix",
+    url: "https://www.netflix.com",
+    src: "https://cdn.brandfetch.io/ideQwN5lBE/theme/dark/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#E50914",
+  },
+  {
+    name: "Disney+",
+    url: "https://www.disneyplus.com",
+    src: "https://cdn.brandfetch.io/idxASqzkm_/theme/light/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#1A1D29",
+  },
+  {
+    name: "Prime Video",
+    url: "https://www.primevideo.com",
+    src: "https://cdn.brandfetch.io/idawOgYOsG/theme/light/idiQe5Cv-5.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#00A8E1",
+  },
+  {
+    name: "Hulu",
+    url: "https://www.hulu.com",
+    src: "https://cdn.brandfetch.io/id4KRloCCr/theme/dark/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#1CE783",
+  },
+  {
+    name: "HBO Max",
+    url: "https://www.hbomax.com",
+    src: "https://cdn.brandfetch.io/idKKo6p4ks/theme/light/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#5822B4",
+  },
+  {
+    name: "Apple TV+",
+    url: "https://www.apple.com/apple-tv-plus",
+    src: "https://cdn.brandfetch.io/idnrCPuv87/theme/light/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#000000",
+  },
+  {
+    name: "Paramount+",
+    url: "https://www.paramountplus.com",
+    src: "https://cdn.brandfetch.io/idrAEeTLeo/idL1WLSh4O.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#0064FF",
+  },
+  {
+    name: "Peacock",
+    url: "https://www.peacocktv.com",
+    src: "https://cdn.brandfetch.io/idCNZVaVJu/theme/light/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#121212",
+  },
+  {
+    name: "YouTube TV",
+    url: "https://tv.youtube.com",
+    src: "https://cdn.brandfetch.io/idfADoGk-F/theme/light/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#FF0000",
+  },
+
+  {
+    name: "Crunchyroll",
+    url: "https://www.crunchyroll.com",
+    src: "https://cdn.brandfetch.io/id0XKwSDEq/theme/dark/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#F47521",
+  },
+  {
+    name: "Tubi",
+    url: "https://tubitv.com",
+    src: "https://cdn.brandfetch.io/idmqb9uCpr/theme/light/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#FA481C",
+  },
+  {
+    name: "Shudder",
+    url: "https://www.shudder.com",
+    src: "https://cdn.brandfetch.io/idKcng2P-t/theme/dark/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#BB0000",
+  },
+  {
+    name: "AMC",
+    url: "https://www.amc.com",
+    src: "https://cdn.brandfetch.io/id3Yt2Btzp/idgfgibX6Q.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#000000",
+  },
+  {
+    name: "Pluto TV",
+    url: "https://pluto.tv",
+    src: "https://cdn.brandfetch.io/idmmjo4Iuh/theme/light/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#000000",
+  },
+  {
+    name: "Rakuten TV",
+    url: "https://rakuten.tv",
+    src: "https://cdn.brandfetch.io/idwZtQrdtU/w/5500/h/1500/theme/dark/logo.png?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#E60012",
+  },
+  {
+    name: "Showtime",
+    url: "https://www.showtime.com",
+    src: "https://cdn.brandfetch.io/id3MsPaRdF/theme/dark/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#E10600",
+  },
+  {
+    name: "Sling TV",
+    url: "https://www.sling.com",
+    src: "https://cdn.brandfetch.io/idzAifP7Tq/theme/dark/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    bgColor: "#1C1C1C",
+  },
+];

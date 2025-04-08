@@ -1,876 +1,658 @@
+import React, { useEffect, useState, useCallback, useRef } from "react";
+
+// --- Chakra UI Primitive Imports ---
 import {
   Box,
-  Container,
   Flex,
-  Heading,
-  Text,
+  Container,
   Image,
+  Text,
+  HStack,
+  Badge,
   SimpleGrid,
   VStack,
-  HStack,
-  Button,
-  Badge,
-  Spinner,
-  useBreakpointValue,
-  IconButton,
+  Heading,
+  Spinner, // Added back for loading state
 } from "@chakra-ui/react";
-import ContentGrid from "@/components/ContentGrid";
-import { Skeleton, SkeletonText, SkeletonCircle } from "@chakra-ui/react";
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { AnimatePresence, motion, useSpring } from "framer-motion";
+
+// --- React Router Imports ---
+import { Link, useNavigate } from "react-router-dom";
+
+// --- Framer Motion Imports ---
+import { motion, AnimatePresence } from "framer-motion";
+
+// --- Service/Util/Component Imports ---
 import {
-  FaPlay,
-  FaStar,
-  FaArrowRight,
-  FaInfoCircle,
-  FaClock,
-} from "react-icons/fa";
-import { BiCameraMovie, BiTv } from "react-icons/bi";
-import {
-  fetchTrendingMovies,
-  fetchTrendingTVShows,
-  fetchTrending,
-  fetchGenres,
-  fetchTopRated,
   baseImageOriginal,
+  baseImageW500, // Useful for grids/carousels
   fetchMovieImages,
   fetchDetails,
-  apiKey,
-} from "@/services/api";
+  fetchTrending, // Using combined trending fetch
+  fetchGenres,
+  fetchTopRated,
+  fetchTrendingMovies,
+  fetchTrendingTVShows,
+} from "@/services/api"; // Assuming correct path
+
+import { watchProviders } from "@/utils/watchProviders";
+
 import {
   resolveRatingColor,
   voteToPercentage,
-  popularStreamingCompanies,
+  popularStreamingCompanies, // Keep if using logos
   formatAirDateRange,
   getSeasonInfo,
   convertMinutesToHours,
-} from "@/utils/helper";
-import { AiFillLike } from "react-icons/ai";
-import { BsCalendarDate } from "react-icons/bs";
-import { FaClapperboard } from "react-icons/fa6";
+  truncateText, // Added back
+} from "@/utils/helper"; // Adjust path
+import ContentGrid from "@/components/ContentGrid"; // Assuming correct path & themed
+import StreamingServiceSkeleton from "@/components/StreamingServiceSkeleton"; // Keep for loading
 
-// Motion components with enhanced variants
+// --- Icon Imports ---
+import {
+  FaPlay,
+  FaInfoCircle,
+  FaStar,
+  FaClock,
+  FaArrowRight, // For "See More" buttons
+  FaFilm, // Default icons
+  FaTv,
+} from "react-icons/fa";
+import { BsCalendarDate } from "react-icons/bs";
+import { FaClapperboard } from "react-icons/fa6"; // Specific TV icon
+import { BiCameraMovie, BiTv } from "react-icons/bi"; // Featured Icons
+import SketchyHeroSlider from "@/components/SketchyHeroSlider";
+import SmoothHeroSlider from "@/components/SmoothHeroSlider";
+
+// ========================================================================
+// --- CUSTOM THEME COMPONENTS (Assume definitions available) ---
+// ========================================================================
 const MotionBox = motion(Box);
 const MotionFlex = motion(Flex);
 const MotionImage = motion(Image);
+const MotionDiv = motion.div;
+const MotionPath = motion.path;
+const MotionHeading = motion(Heading);
+
+// Re-paste SketchButton & SquigglyLine definitions
+const ScribbleEffect = ({ isActive }) => (
+  <motion.svg
+    width="100%"
+    height="100%"
+    viewBox="0 0 300 100"
+    initial={false}
+    style={{
+      position: "absolute",
+      top: 0,
+      left: 0,
+      pointerEvents: "none",
+      zIndex: 10,
+      opacity: 0.5,
+    }}
+    animate={isActive ? "visible" : "hidden"}
+    variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
+  >
+    {" "}
+    <motion.path
+      d="M10,50 C50,30 100,70 150,50 C200,30 250,60 290,50"
+      fill="transparent"
+      stroke="#FFEC44"
+      strokeWidth="2"
+      strokeDasharray="5,5"
+      initial={{ pathLength: 0, opacity: 0 }}
+      animate={
+        isActive
+          ? { pathLength: 1, opacity: 0.4 }
+          : { pathLength: 0, opacity: 0 }
+      }
+      transition={{ duration: 0.6, ease: "easeInOut" }}
+      style={{ strokeDashoffset: 0 }}
+    />{" "}
+  </motion.svg>
+);
+
+const SketchButtonInternal = ({ children, primary = false, ...rest }) => (
+  <Box
+    as="button"
+    width="100%"
+    height="auto"
+    minH="10"
+    position="relative"
+    bg={primary ? "#FFEC44" : "rgba(40,40,40,0.7)"}
+    color={primary ? "#000" : "#fff"}
+    border="1px solid #000"
+    borderRadius="none"
+    fontWeight={primary ? "bold" : "medium"}
+    zIndex={2}
+    transition="transform 0.2s, background 0.2s"
+    _hover={{ textDecoration: "none" }}
+    _focusVisible={{ outline: "2px solid #FFEC44", outlineOffset: "2px" }}
+    _disabled={{
+      opacity: 0.5,
+      cursor: "not-allowed",
+      filter: "grayscale(80%)",
+    }}
+    fontFamily="'Courier New', monospace"
+    fontSize="sm"
+    textTransform="uppercase"
+    letterSpacing="wider"
+    px={4}
+    py={2}
+    whiteSpace="nowrap"
+    overflow="hidden"
+    textOverflow="ellipsis"
+    {...rest}
+  >
+    {" "}
+    {children}{" "}
+    <MotionDiv
+      style={{
+        position: "absolute",
+        bottom: "4px",
+        left: "5%",
+        height: "2px",
+        background: primary ? "black" : "#FFEC44",
+        zIndex: 3,
+        width: 0,
+      }}
+    />{" "}
+  </Box>
+);
+
+const SketchButton = ({
+  children,
+  primary = false,
+  onClick = () => {},
+  disabled = false,
+  isLoading = false,
+  size = "md",
+  type = "button",
+  iconSpacing = 2,
+  ...rest
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const underlineVariants = {
+    rest: { width: 0 },
+    hover: { width: "90%", transition: { duration: 0.3 } },
+  };
+  const isDisabled = disabled || isLoading;
+  const fontSize = size === "sm" ? "xs" : "sm";
+  const paddingX = size === "sm" ? 3 : 4;
+  const minHeight = size === "sm" ? 8 : 10;
+  return (
+    <motion.div
+      style={{ position: "relative", width: "100%" }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      whileHover={!isDisabled ? "hover" : "rest"}
+      whileTap={!isDisabled ? { scale: 0.98 } : {}}
+      initial="rest"
+    >
+      {" "}
+      <ScribbleEffect isActive={isHovered && !isDisabled} />{" "}
+      {!isDisabled &&
+        ["topLeft", "topRight", "bottomLeft", "bottomRight"].map((pos, idx) => (
+          <motion.div
+            key={pos}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={
+              isHovered ? { scale: 1, opacity: 0.8 } : { scale: 0, opacity: 0 }
+            }
+            transition={{
+              duration: 0.2,
+              delay: idx * 0.05,
+              type: "spring",
+              stiffness: 500,
+            }}
+            style={{
+              position: "absolute",
+              width: "8px",
+              height: "8px",
+              border: "2px solid #FFEC44",
+              zIndex: 5,
+              borderRadius: "none",
+              ...(pos === "topLeft"
+                ? { top: -4, left: -4, borderWidth: "2px 0 0 2px" }
+                : pos === "topRight"
+                ? { top: -4, right: -4, borderWidth: "2px 2px 0 0" }
+                : pos === "bottomLeft"
+                ? { bottom: -4, left: -4, borderWidth: "0 0 2px 2px" }
+                : { bottom: -4, right: -4, borderWidth: "0 2px 2px 0" }),
+            }}
+          />
+        ))}
+      {!isDisabled && (
+        <motion.div
+          initial={{ opacity: 0.6, x: 3, y: 3 }}
+          animate={
+            isHovered
+              ? { opacity: 0.9, x: 5, y: 5 }
+              : { opacity: 0.6, x: 3, y: 3 }
+          }
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(0,0,0,0.9)",
+            zIndex: -1,
+            border: "1px solid rgba(0,0,0,0.5)",
+            borderRadius: "none",
+          }}
+          transition={{ duration: 0.2 }}
+        />
+      )}{" "}
+      <SketchButtonInternal
+        primary={primary}
+        onClick={onClick}
+        disabled={isDisabled}
+        minH={minHeight}
+        fontSize={fontSize}
+        px={paddingX}
+        type={type}
+        {...rest}
+      >
+        {" "}
+        <Flex align="center" justify="center" gap={iconSpacing}>
+          {isLoading ? <Spinner size="xs" speed="0.8s" /> : children}
+        </Flex>{" "}
+      </SketchButtonInternal>{" "}
+      <motion.div
+        variants={underlineVariants}
+        style={{
+          position: "absolute",
+          bottom: "4px",
+          left: "5%",
+          height: "2px",
+          background: primary ? "black" : "#FFEC44",
+          zIndex: 3,
+        }}
+      />{" "}
+    </motion.div>
+  );
+};
+
+const SquigglyLine = ({
+  color = "rgba(255, 236, 68, 0.8)",
+  delay = 0,
+  thickness = 1.5,
+  dasharray = "3,2",
+}) => (
+  <MotionDiv
+    initial={{ width: "0%" }}
+    animate={{ width: "100%" }}
+    transition={{ duration: 0.8, delay }}
+    style={{ position: "relative", lineHeight: "0" }}
+  >
+    {" "}
+    <svg
+      width="100%"
+      height="4"
+      viewBox="0 0 300 4"
+      preserveAspectRatio="none"
+      style={{ display: "block" }}
+    >
+      {" "}
+      <MotionPath
+        d="M0,2 C20,1 40,3 60,2 C80,1 100,3 120,2 C140,1 160,3 180,2 C200,1 220,3 240,2 C260,1 280,3 300,2"
+        fill="none"
+        stroke={color}
+        strokeWidth={thickness}
+        strokeDasharray={dasharray}
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 1.5, delay: delay + 0.7 }}
+      />{" "}
+    </svg>{" "}
+  </MotionDiv>
+);
+
+
+const shadowVariants = {
+  rest: { opacity: 0.6, x: 2, y: 2, transition: { duration: 0.2 } },
+  hover: { opacity: 0.9, x: 4, y: 4, transition: { duration: 0.2 } },
+};
+
+// Helper for Section Heading
+const SectionHeading = ({
+  children,
+  accentColor,
+  headingFont,
+  linkTo = null,
+}) => (
+  <Flex justify="space-between" align="flex-end" mb={6} wrap="wrap">
+    <Box position="relative" display="inline-block">
+      <Heading
+        as="h2"
+        size="lg"
+        color="white"
+        fontFamily={headingFont}
+        textTransform="uppercase"
+        letterSpacing="wide"
+      >
+        {children}
+      </Heading>
+      <Box position="absolute" bottom="-8px" left="0" w="50px">
+        <SquigglyLine color={accentColor} thickness={2} dasharray="4,2" />
+      </Box>
+    </Box>
+    {linkTo && (
+      <Link to={linkTo}>
+        <Text
+          color="gray.400"
+          fontFamily={headingFont}
+          fontSize="sm"
+          _hover={{ color: accentColor, textDecoration: "underline" }}
+          display="flex"
+          alignItems="center"
+        >
+          See More <FaArrowRight style={{ marginLeft: "8px" }} />
+        </Text>
+      </Link>
+    )}
+  </Flex>
+);
+
+// ========================================================================
+// --- Home PAGE COMPONENT (Themed like Shows/Movies but Unique) ---
+// ========================================================================
 
 const Home = () => {
+  // --- State ---
   const [trendingAll, setTrendingAll] = useState([]);
-  const [trendingMovies, setTrendingMovies] = useState([]);
-  const [trendingTvShows, setTrendingTvShows] = useState([]);
-  const [genres, setGenres] = useState([]);
+  const [featuredContent, setFeaturedContent] = useState(null); // Single item for hero
+  const [loading, setLoading] = useState(true);
+  const [genres, setGenres] = useState({ movie: [], tv: [] });
+  const [genreMap, setGenreMap] = useState({});
   const [topRatedMovies, setTopRatedMovies] = useState([]);
   const [topRatedTvShows, setTopRatedTvShows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedGenre, setSelectedGenre] = useState("all");
-  const [contentType, setContentType] = useState("movie");
-  const [streamingProviders, setStreamingProviders] = useState([]);
+  const [popularMovies, setPopularMovies] = useState([]); // For a dedicated movie row
+  const [popularTv, setPopularTv] = useState([]); // For a dedicated TV row
 
-  // Enhanced color scheme
-  const accentColor = "#E63946"; // Brighter red
-  const secondaryAccent = "#457B9D"; // Cool blue contrast
-  const cardBg = "rgba(15, 17, 25, 0.85)";
-  const gradientBg =
-    "linear-gradient(to bottom, rgba(0,0,0,0.65), rgba(15,17,25,0.95))";
+  // --- Theming ---
+  const baseBg = "#0C0C1B";
+  const cardBg = "rgba(30, 30, 40, 0.9)";
+  const accentColor = "#FFEC44"; // Yellow accent
+  const gradientOverlay =
+    "linear-gradient(rgba(0,0,0,0.1) 0%, rgba(12,12,27,0.6) 60%, #0C0C1B 95%)";
+  const borderColor = "rgba(255, 255, 255, 0.1)";
+  const mutedTextColor = "gray.400";
+  const headingFont = "'Courier New', monospace";
 
-  // Responsive values
-  const heroHeight = useBreakpointValue({ base: "80vh", md: "85vh" });
-  const gridColumns = useBreakpointValue({ base: 1, sm: 2, md: 3, lg: 4 });
-  const hoverAccentColor = "rgba(230, 57, 70, 1)";
-
+  // --- Fetch Data ---
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        // Optimize by using Promise.all for parallel requests
+        // Fetch all concurrently
         const [
           trendingData,
-          moviesData,
-          tvData,
-          genresData,
+          genresMovieData,
+          genresTvData,
           topRatedMoviesData,
           topRateTvShowsData,
+          popularMoviesData, // Fetching separate popular movies
+          popularTvData, // Fetching separate popular tv
         ] = await Promise.all([
-          fetchTrending(),
-          fetchTrendingMovies(),
-          fetchTrendingTVShows(),
+          fetchTrending("week", 1), // Fetch page 1 of combined trending
           fetchGenres("movie"),
+          fetchGenres("tv"),
           fetchTopRated("movie"),
           fetchTopRated("tv"),
+          fetchTrendingMovies("week"), // Assume fetchTrendingMovies can take 'week'
+          fetchTrendingTVShows("week"), // Assume fetchTrendingTVShows can take 'week'
         ]);
 
-        // Batch fetch TV details for better performance
-        const TvWithImagesAndDetails = await Promise.all(
-          tvData.map(async (tv) => {
-            const [imagesData, tvDetails] = await Promise.all([
-              fetchMovieImages("tv", tv.id),
-              fetchDetails("tv", tv.id),
+        // Create combined Genre Map
+        const movieGenreMap = genresMovieData.reduce(
+          (acc, g) => ({ ...acc, [g.id]: g.name }),
+          {}
+        );
+        const tvGenreMap = genresTvData.reduce(
+          (acc, g) => ({ ...acc, [g.id]: g.name }),
+          {}
+        );
+        const combinedGenreMap = { ...movieGenreMap, ...tvGenreMap };
+        setGenreMap(combinedGenreMap);
+        setGenres({ movie: genresMovieData, tv: genresTvData }); // Store separate genres if needed
+
+        // Process trending data with details for Hero
+        const trendingItems =
+          trendingData?.filter(
+            (item) =>
+              item.backdrop_path &&
+              (item.media_type === "movie" || item.media_type === "tv")
+          ) || [];
+        if (trendingItems.length > 0) {
+          const randomIndex = Math.floor(
+            Math.random() * Math.min(trendingItems.length, 5)
+          ); // Pick from top 5 trending
+          const randomItem = trendingItems[randomIndex];
+          try {
+            const [detailsData, imagesData] = await Promise.all([
+              fetchDetails(randomItem.media_type, randomItem.id),
+              fetchMovieImages(randomItem.media_type, randomItem.id),
             ]);
-            return {
-              ...tv,
+            setFeaturedContent({
+              ...randomItem,
+              details: detailsData,
               images: imagesData,
-              details: tvDetails,
-            };
-          })
+              genreNames: randomItem.genre_ids
+                .map((id) => combinedGenreMap[id])
+                .filter(Boolean),
+            });
+          } catch (detailError) {
+            console.warn(
+              `Failed fetch details for hero ${randomItem.id}:`,
+              detailError
+            );
+            setFeaturedContent(randomItem); /* Fallback */
+          }
+        }
+        // Store lists with genre names (no need for extra details fetching unless required by grid)
+        setTopRatedMovies(topRatedMoviesData?.slice(0, 12) || []);
+        setTopRatedTvShows(topRateTvShowsData?.slice(0, 12) || []);
+        setPopularMovies(
+          popularMoviesData?.slice(0, 12).map((m) => ({
+            ...m,
+            genreNames: m.genre_ids
+              .map((id) => combinedGenreMap[id])
+              .filter(Boolean),
+          })) || []
         );
-
-        // Batch fetch Movie details
-        const MoviesWithImagesAndDetails = await Promise.all(
-          moviesData.map(async (movie) => {
-            const [imagesData, movieDetails] = await Promise.all([
-              fetchMovieImages("movie", movie.id),
-              fetchDetails("movie", movie.id),
-            ]);
-            return {
-              ...movie,
-              images: imagesData,
-              details: movieDetails,
-            };
-          })
+        setPopularTv(
+          popularTvData?.slice(0, 12).map((tv) => ({
+            ...tv,
+            genreNames: tv.genre_ids
+              .map((id) => combinedGenreMap[id])
+              .filter(Boolean),
+          })) || []
         );
-
-        // Fetch company logos with improved error handling
-        const companiesWithLogos = await Promise.all(
-          popularStreamingCompanies.map(async (company) => {
-            try {
-              const imagesResponse = await fetch(
-                `https://api.themoviedb.org/3/company/${company.id}/images?api_key=${apiKey}`
-              );
-
-              if (!imagesResponse.ok) {
-                throw new Error(`HTTP error ${imagesResponse.status}`);
-              }
-
-              const imagesData = await imagesResponse.json();
-
-              return {
-                ...company,
-                logo_path:
-                  imagesData.logos && imagesData.logos.length > 0
-                    ? imagesData.logos[0].file_path
-                    : null,
-              };
-            } catch (error) {
-              console.error(
-                `Error fetching images for ${company.name}:`,
-                error
-              );
-              return company;
-            }
-          })
-        );
-
-        const trendingDataWithImagesAndDetails = await Promise.all(
-          trendingData.map(async (all) => {
-            const [imagesData, allDetails] = await Promise.all([
-              fetchMovieImages(all.media_type, all.id),
-              fetchDetails(all.media_type, all.id),
-            ]);
-            return {
-              ...all,
-              images: imagesData,
-              details: allDetails,
-            };
-          })
-        );
-
-        // Update state with fetched data
-        setTrendingMovies(MoviesWithImagesAndDetails.slice(0, 20));
-        setTrendingTvShows(TvWithImagesAndDetails.slice(0, 20));
-        setGenres(genresData);
-        setTopRatedMovies(topRatedMoviesData.slice(0, 8));
-        setTopRatedTvShows(topRateTvShowsData.slice(0, 8));
-        setTrendingAll(trendingDataWithImagesAndDetails);
-        setStreamingProviders(
-          companiesWithLogos.filter((company) => company.logo_path)
-        );
+        setTrendingAll(
+          trendingItems.map((item) => ({
+            ...item,
+            genreNames: item.genre_ids
+              .map((id) => combinedGenreMap[id])
+              .filter(Boolean),
+          }))
+        ); // Keep all trending with names
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching Home data:", error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
-  }, []);
+  }, []); // Run once on mount
 
-  // Enhanced gradient overlay for better contrast and depth
-  const gradientOverlay =
-    "linear-gradient(rgba(0,0,0,0.1) 0%, rgba(10,10,25,0.7) 60%, rgba(10,10,25,0.95) 90%, rgba(10,10,25,1) 100%)";
-
-  const getBackdropToUse = (randomShow) => {
-    if (
-      !randomShow ||
-      !randomShow.images ||
-      !randomShow.images.backdrops ||
-      randomShow.images.backdrops.length === 0
-    ) {
+  // --- Helpers (Logo/Backdrop getters are useful here) ---
+  const getEnglishLogo = useCallback((logos) => {
+    /* ... as defined before ... */ if (!logos || logos.length === 0)
       return null;
-    }
-
-    // Try to find a backdrop with null language first (typically means original/global)
-    const nullLanguageBackdrop = randomShow.images.backdrops.filter(
-      (backdrop) => backdrop.iso_639_1 === null
+    const p = logos.find(
+      (l) => l.iso_639_1 === "en" && l.file_path?.toLowerCase().endsWith(".png")
     );
+    if (p) return p;
+    const e = logos.find((l) => l.iso_639_1 === "en");
+    return e || logos[0];
+  }, []);
+  const hasValidLogo = useCallback(
+    (item) =>
+      item?.images?.logos?.length > 0 &&
+      getEnglishLogo(item.images.logos)?.file_path,
+    [getEnglishLogo]
+  );
 
-    // Use highest vote_average backdrop if available
-    if (nullLanguageBackdrop.length > 0) {
-      return nullLanguageBackdrop.sort(
-        (a, b) => b.vote_average - a.vote_average
-      )[0];
-    }
-
-    // Otherwise sort all backdrops by vote_average
-    return randomShow.images.backdrops.sort(
-      (a, b) => b.vote_average - a.vote_average
-    )[0];
-  };
-
-  // Filter content by genre with memoization for performance
-  const filteredContent = useMemo(() => {
-    const content = contentType === "movie" ? trendingMovies : trendingTvShows;
-
-    if (selectedGenre === "all") {
-      return content;
-    }
-
-    return content.filter(
-      (item) =>
-        item.genre_ids && item.genre_ids.includes(parseInt(selectedGenre))
-    );
-  }, [contentType, selectedGenre, trendingMovies, trendingTvShows]);
-
-  // Function to get English logo or fallback to the first available logo
-  const getEnglishLogo = (logos) => {
-    if (!logos || logos.length === 0) return null;
-
-    // First try to find an English PNG logo
-    const englishPngLogo = logos.find(
-      (logo) =>
-        logo.iso_639_1 === "en" &&
-        logo.file_path &&
-        logo.file_path.toLowerCase().endsWith(".png")
-    );
-
-    if (englishPngLogo) return englishPngLogo;
-
-    // If no English PNG found, look for any PNG logo
-    const anyPngLogo = logos.find(
-      (logo) => logo.file_path && logo.file_path.toLowerCase().endsWith(".png")
-    );
-
-    if (anyPngLogo) return anyPngLogo;
-
-    // If all else fails, return the English logo even if not PNG
-    const englishLogo = logos.find((logo) => logo.iso_639_1 === "en");
-
-    // Last resort: return the first logo
-    return englishLogo || logos[0];
-  };
-
-  const hasValidLogo = (show) => {
-    return (
-      show &&
-      show.images &&
-      show.images.logos &&
-      show.images.logos.length > 0 &&
-      getEnglishLogo(show.images.logos) &&
-      getEnglishLogo(show.images.logos).file_path
-    );
-  };
-
-  const hasValidBackdrop = (show) => {
-    return (
-      show &&
-      show.images &&
-      show.images.backdrops &&
-      show.images.backdrops.length > 0
-    );
-  };
-
-  // Featured content selection with proper memoization
-  const featuredContent = useMemo(() => {
-    // For all content, filter trending with valid logos and backdrops
-    const eligibleContent = trendingAll.filter(
-      (item) => hasValidLogo(item) && hasValidBackdrop(item)
-    );
-
-    // If no eligible content, return null
-    if (eligibleContent.length === 0) return null;
-
-    // Prioritize highly rated content
-    const sortedContent = [...eligibleContent].sort(
-      (a, b) => b.vote_average - a.vote_average
-    );
-
-    // Take top 5 and select one randomly for variety
-    const topContent = sortedContent.slice(0, 5);
-    const randomIndex = Math.floor(Math.random() * topContent.length);
-    return topContent[randomIndex];
-  }, [trendingAll]);
-
-  // Helper function to get genre names with null check
-  const getGenreNames = (genreIds) => {
-    if (!genreIds || !genres.length) return "";
-    return genreIds
-      .slice(0, 2)
-      .map((id) => genres.find((g) => g.id === id)?.name)
-      .filter(Boolean)
-      .join(" • ");
-  };
-
-  // Custom animation variants for unique transitions
-  const backdropVariants = {
-    initial: {
-      opacity: 0,
-      scale: 1.05,
-    },
-    animate: {
-      opacity: 1,
-      scale: 1,
-      transition: {
-        opacity: { duration: 0.8, ease: "easeOut" },
-        scale: { duration: 8, ease: [0.25, 0.1, 0.25, 1] },
-      },
-    },
-    exit: {
-      opacity: 0,
-      filter: "blur(8px)",
-      transition: {
-        duration: 0.5,
-        ease: "easeIn",
-      },
-    },
-  };
-
-  const contentInVariants = {
-    initial: {
-      opacity: 0,
-      y: 30,
-    },
-    animate: (custom) => ({
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-        delay: custom * 0.1,
-        ease: [0.25, 0.1, 0.25, 1],
-      },
-    }),
-    exit: {
-      opacity: 0,
-      y: -15,
-      transition: {
-        duration: 0.3,
-      },
-    },
-  };
-
-  const logoVariants = {
-    initial: {
-      opacity: 0,
-      scale: 0.9,
-      filter: "blur(5px)",
-    },
-    animate: {
-      opacity: 1,
-      scale: 1,
-      filter: "blur(0px)",
-      transition: {
-        duration: 0.7,
-        ease: [0.34, 1.56, 0.64, 1], // Custom spring-like easing
-      },
-    },
-    exit: {
-      opacity: 0,
-      scale: 0.95,
-      filter: "blur(5px)",
-      transition: {
-        duration: 0.4,
-      },
-    },
-  };
-
+  // --- Loading State ---
   if (loading) {
-    return (
-      <Box bg="black" minHeight="100vh">
-        {/* Hero Skeleton */}
-        <Box
-          height={heroHeight}
-          position="relative"
-          overflow="hidden"
-          bg="gray.900"
-        >
-          <Container maxW="container.xl" height="100%" position="relative">
-            <Flex
-              height="100%"
-              flexDirection="column"
-              justifyContent="flex-end"
-              pb={10}
-              px={[4, 6, 8]}
-            >
-              <Box maxWidth="600px">
-                <Skeleton height="32px" width="120px" mb={4} />
-                <Skeleton height="64px" width="300px" mb={6} />
-                <SkeletonText
-                  mt="4"
-                  noOfLines={3}
-                  spacing="4"
-                  skeletonHeight="4"
-                  width="500px"
-                  mb={6}
-                />
-                <Flex gap={4}>
-                  <Skeleton height="40px" width="140px" borderRadius="md" />
-                  <Skeleton height="40px" width="120px" borderRadius="md" />
-                </Flex>
-              </Box>
-            </Flex>
-          </Container>
-        </Box>
-
-        {/* Main Content Skeleton */}
-        <Box py={8} bg="black">
-          <Container maxW="container.xl">
-            <Box mb={12}>
-              <Flex
-                justifyContent="space-between"
-                alignItems="center"
-                mb={6}
-                px={[4, 6, 8]}
-              >
-                <Skeleton height="28px" width="180px" />
-                <Skeleton height="32px" width="160px" borderRadius="full" />
-              </Flex>
-
-              {/* Genre Filter Skeleton */}
-              <Box px={[4, 6, 8]} mb={6}>
-                <Flex gap={4} overflowX="auto" pb={4}>
-                  {[...Array(8)].map((_, i) => (
-                    <Skeleton
-                      key={i}
-                      height="28px"
-                      width={`${60 + Math.random() * 40}px`}
-                    />
-                  ))}
-                </Flex>
-              </Box>
-
-              {/* Content Grid Skeleton */}
-              <SimpleGrid
-                columns={gridColumns}
-                gap={4}
-                spacing={6}
-                px={[4, 6, 8]}
-              >
-                {[...Array(8)].map((_, i) => (
-                  <Box
-                    key={i}
-                    borderRadius="lg"
-                    overflow="hidden"
-                    bg="gray.800"
-                  >
-                    <Skeleton height="260px" width="100%" />
-                    <Box p={4}>
-                      <SkeletonText mt="2" noOfLines={2} spacing="4" />
-                      <Flex justify="space-between" mt={4}>
-                        <Skeleton height="32px" width="80px" />
-                        <Skeleton height="32px" width="80px" />
-                      </Flex>
-                    </Box>
-                  </Box>
-                ))}
-              </SimpleGrid>
-
-              {/* Top Rated Skeleton */}
-              <Box mt={12}>
-                <Flex
-                  justifyContent="space-between"
-                  alignItems="center"
-                  mb={6}
-                  px={[4, 6, 8]}
-                >
-                  <Skeleton height="28px" width="140px" />
-                  <Skeleton height="20px" width="60px" />
-                </Flex>
-                <Flex gap={6} overflowX="auto" px={[4, 6, 8]} pb={4}>
-                  {[...Array(5)].map((_, i) => (
-                    <Skeleton
-                      key={i}
-                      height="180px"
-                      minWidth="300px"
-                      borderRadius="lg"
-                    />
-                  ))}
-                </Flex>
-              </Box>
-            </Box>
-          </Container>
-        </Box>
-      </Box>
-    );
+    return <StreamingServiceSkeleton />;
   }
 
   return (
-    <Box position={"relative"}>
-      {/* Hero Section */}
-      {featuredContent && hasValidBackdrop(featuredContent) && (
-        //   {/* Full-screen background with enhanced animation */}
-        <AnimatePresence mode="wait">
-          <MotionBox
-            key={featuredContent.id}
-            position="fixed"
-            top={0}
-            left={0}
-            right={0}
-            width="100%"
-            height="100%"
-            zIndex={-1}
-            variants={backdropVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            backgroundImage={`url(${baseImageOriginal}${
-              getBackdropToUse(featuredContent)?.file_path
-            })`}
-            backgroundSize="cover"
-            backgroundPosition="center"
-            backgroundRepeat="no-repeat"
-          >
-            {/* Gradient overlay with improved aesthetics */}
-            <Box
-              position="absolute"
-              top={0}
-              left={0}
-              width="100%"
-              height="100%"
-              background={gradientOverlay}
-            />
-          </MotionBox>
-        </AnimatePresence>
-      )}
+    <Box position="relative" bg={baseBg} minHeight="100vh">
+      {/* Hero Section - Move this to the top */}
+      <SketchyHeroSlider />
 
-      <Box position="relative" height="75vh" display="flex" alignItems="center">
-        <Container maxW="container.xl" height="100%" position="relative">
-          <AnimatePresence mode='popLayout'>
-            {featuredContent && (
-              <MotionFlex
-                key={`content-${featuredContent.id}`}
-                direction="column"
-                height="100%"
-                color="white"
-                pl={[2, 4, 8]}
-                pr={[2, 4, 8]}
-                pt="10vh"
-                pb={12}
-                mt={-14}
-                spacing={3}
-                position="relative"
-                variants={contentInVariants}
-                custom={0}
-                initial="initial"
-                animate="animate"
-                exit="exit"
+  
+   
+
+      <Container
+        maxW="1400px"
+        mx="auto"
+        px={{ base: 4, md: 8, lg: 12 }}
+        py={10}
+      >
+        <VStack spacing={12} align="stretch">
+          {" "}
+          {/* Vertical stack for sections */}
+          {/* --- Popular Movies Row --- */}
+          {popularMovies.length > 0 && (
+            <Box>
+              <SectionHeading
+                headingFont={headingFont}
+                accentColor={accentColor}
+                linkTo="/movies"
               >
-                {/* Logo Section */}
-                <Box
-                  position="absolute"
-                  top="23%"
-                  left={[2, 4, 8]}
-                  maxWidth="60%"
-                  zIndex={1}
-                >
-                  {/* Content Type Badge with improved style */}
-                  <MotionBox custom={1} variants={contentInVariants}>
-                    <Badge
-                      colorScheme="red"
-                      bg={accentColor}
-                      mb={10}
-                      fontSize="sm"
-                      display="inline-flex"
-                      alignItems="center"
-                      pl={2}
-                      pr={3}
-                      py={2}
-                      boxShadow="0 2px 10px rgba(230, 57, 70, 0.4)"
-                    >
-                      {featuredContent.media_type === "movie" ? (
-                        <>
-                          <BiCameraMovie style={{ marginRight: "6px" }} />{" "}
-                          Featured Movie
-                        </>
-                      ) : (
-                        <>
-                          <BiTv style={{ marginRight: "6px" }} /> Featured TV
-                          Show
-                        </>
-                      )}
-                    </Badge>
-                  </MotionBox>
-
-                  {hasValidLogo(featuredContent) ? (
-                    <MotionImage
-                      src={`${baseImageOriginal}${
-                        getEnglishLogo(featuredContent.images.logos).file_path
-                      }`}
-                      alt={`${
-                        featuredContent.name || featuredContent.title
-                      } logo`}
-                      maxHeight="180px"
-                      objectFit="contain"
-                      filter="drop-shadow(0 0 10px rgba(0,0,0,0.6))"
-                      variants={logoVariants}
-                      initial="initial"
-                      animate="animate"
-                      exit="exit"
+                {" "}
+                {/* Added Link */}
+                Popular Movies
+              </SectionHeading>
+              {/* Horizontal Scroll for Popular Movies */}
+              <Box
+                overflowX="auto"
+                css={{
+                  "&::-webkit-scrollbar": { display: "none" },
+                  scrollbarWidth: "none",
+                }}
+                mx={-4}
+                px={4} /* Bleed effect */
+              >
+                <HStack spacing={4} pb={4} align="stretch">
+                  {popularMovies.map((movie, index) => (
+                    <MotionBox key={movie.id} minW="260px" flexShrink={0}>
+                      {/* Use a themed card component if available, otherwise basic themed ContentGrid */}
+                      <ContentGrid
+                        item={movie}
+                        index={index}
+                        contentType="movie"
+                        genreMap={genreMap}
+                        isCompact={true} /* Example: maybe a compact prop? */
+                      />
+                    </MotionBox>
+                  ))}
+                </HStack>
+              </Box>
+            </Box>
+          )}
+          {/* --- Popular TV Shows Row --- */}
+          {popularTv.length > 0 && (
+            <Box>
+              <SectionHeading
+                headingFont={headingFont}
+                accentColor={accentColor}
+                linkTo="/shows"
+              >
+                {" "}
+                {/* Added Link */}
+                Popular TV Shows
+              </SectionHeading>
+              {/* Horizontal Scroll */}
+              <Box
+                overflowX="auto"
+                css={{
+                  "&::-webkit-scrollbar": { display: "none" },
+                  scrollbarWidth: "none",
+                }}
+                mx={-4}
+                px={4}
+              >
+                <HStack spacing={4} pb={4} align="stretch">
+                  {popularTv.map((tv, index) => (
+                    <MotionBox key={tv.id} minW="260px" flexShrink={0}>
+                      <ContentGrid
+                        item={tv}
+                        index={index}
+                        contentType="tv"
+                        genreMap={genreMap}
+                        isCompact={true}
+                      />
+                    </MotionBox>
+                  ))}
+                </HStack>
+              </Box>
+            </Box>
+          )}
+          {/* --- Top Rated Movies Grid --- */}
+          {topRatedMovies.length > 0 && (
+            <Box>
+              <SectionHeading
+                headingFont={headingFont}
+                accentColor={accentColor}
+                linkTo="/movies?sort=top_rated"
+              >
+                Top Rated Movies
+              </SectionHeading>
+              <SimpleGrid columns={[2, 3, 4, 5, 6]} spacing={4}>
+                {topRatedMovies.slice(0, 6).map(
+                  (
+                    movie,
+                    index // Limit grid display
+                  ) => (
+                    <ContentGrid
+                      key={movie.id}
+                      item={movie}
+                      index={index}
+                      contentType="movie"
+                      genreMap={genreMap}
                     />
-                  ) : (
-                    <MotionBox
-                      variants={contentInVariants}
-                      custom={2}
-                      initial="initial"
-                      animate="animate"
-                      exit="exit"
-                    >
-                      <Heading
-                        size="2xl"
-                        fontWeight="bold"
-                        textShadow="0px 0px 10px rgba(0,0,0,0.8)"
-                      >
-                        {featuredContent.name || featuredContent.title}
-                      </Heading>
-                    </MotionBox>
-                  )}
-                </Box>
-
-                {/* Bottom content container - Details and actions */}
-                <MotionFlex
-                  direction="column"
-                  position="absolute"
-                  bottom={0}
-                  left={0}
-                  right={[2, 4, 8]}
-                  pb={8}
-                  maxWidth="600px"
-                  variants={contentInVariants}
-                  custom={3}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                >
-                  {/* Genre section with separator */}
-                  {featuredContent.details &&
-                    featuredContent.details.genres && (
-                      <HStack spacing={1} mb={3} wrap="wrap" ml={[2, 4, 8]}>
-                        {featuredContent.details.genres.map((genre, index) => (
-                          <Box
-                            key={genre.id}
-                            display="flex"
-                            alignItems="center"
-                          >
-                            <Text
-                              fontSize="md"
-                              fontWeight="medium"
-                              textShadow="0px 0px 8px rgba(0,0,0,0.8)"
-                            >
-                              {genre.name}
-                            </Text>
-                            {index <
-                              featuredContent.details.genres.length - 1 && (
-                              <Text
-                                mx={1}
-                                color={accentColor}
-                                fontWeight="bold"
-                                textShadow="0px 0px 8px rgba(0,0,0,0.8)"
-                              >
-                                &nbsp;•
-                              </Text>
-                            )}
-                          </Box>
-                        ))}
-                      </HStack>
-                    )}
-
-                  {/* TV Show info banner with enhanced visuals */}
-                  <Box
-                    position="relative"
-                    mb={4}
-                    maxWidth="fit-content"
-                    ml={[2, 4, 8]}
-                  >
-                    <Flex alignItems="center" maxWidth="fit-content" gap={4}>
-                      {featuredContent.vote_average > 0 && (
-                        <Flex alignItems="center">
-                          <Box
-                            as={AiFillLike}
-                            size={"25px"}
-                            color={resolveRatingColor(
-                              featuredContent.vote_average
-                            )}
-                            mr={1}
-                          />
-                          <Text color="white" fontWeight="bold">
-                            {voteToPercentage(
-                              featuredContent.vote_average
-                            ).toFixed(0)}
-                            %
-                          </Text>
-                        </Flex>
-                      )}
-                      {/* Year Range */}
-                      {featuredContent.media_type === "tv" && (
-                        <Flex alignItems="center">
-                          <Box as={BsCalendarDate} mr={2} color={accentColor} />
-                          <Text fontWeight="medium" fontSize="md">
-                            {formatAirDateRange(featuredContent)}
-                          </Text>
-                        </Flex>
-                      )}
-
-                      {/* Year */}
-                      {featuredContent.media_type === "movie" && (
-                        <Flex alignItems="center">
-                          <Box as={BsCalendarDate} mr={2} color={accentColor} />
-                          <Text fontWeight="medium" fontSize="md">
-                            {featuredContent.release_date &&
-                              new Date(
-                                featuredContent.release_date
-                              ).getFullYear()}
-                          </Text>
-                        </Flex>
-                      )}
-
-                      {/* Seasons & Episodes */}
-                      {featuredContent.media_type === "tv" && (
-                        <Flex alignItems="center">
-                          <Box as={FaClapperboard} mr={2} color={accentColor} />
-                          <Text fontWeight="medium" fontSize="md">
-                            {getSeasonInfo(featuredContent)}
-                          </Text>
-                        </Flex>
-                      )}
-
-                      {/* Duration */}
-                      {featuredContent.media_type === "movie" && (
-                        <Flex alignItems="center">
-                          <Box as={FaClock} mr={2} color={accentColor} />
-                          <Text fontWeight="medium" fontSize="md">
-                            {featuredContent.details &&
-                              convertMinutesToHours(
-                                featuredContent.details.runtime
-                              )}
-                          </Text>
-                        </Flex>
-                      )}
-
-                      {/* Rating with star */}
-                      {featuredContent.vote_average !== 0 && (
-                        <Flex align="center">
-                          <Box as={FaStar} mr={2} color="yellow.400" />
-                          <Text fontWeight="bold">
-                            {featuredContent.vote_average &&
-                              featuredContent.vote_average.toFixed(1)}
-                          </Text>
-                        </Flex>
-                      )}
-                    </Flex>
-                  </Box>
-
-                  {/* Overview Text with improved styling */}
-                  <Box
-                    height="6.5rem"
-                    mb={6}
-                    ml={[2, 4, 8]}
-                    overflow="hidden"
-                    position="relative"
-                  >
-                    <Text
-                      fontSize="lg"
-                      lineHeight="1.5"
-                      textShadow="0px 0px 10px rgba(0,0,0,0.8)"
-                      maxWidth="550px"
-                    >
-                      {featuredContent.overview}
-                    </Text>
-                    <Box
-                      position="absolute"
-                      bottom="0"
-                      left="0"
-                      right="0"
-                      height="30px"
-                      bgGradient="linear(to-t, rgba(10,10,25,1), transparent)"
-                    />
-                  </Box>
-
-                  {/* Action Buttons with enhanced animations */}
-                  <HStack spacing={4} ml={[2, 4, 8]}>
-                    <MotionBox
-                      whileHover={{
-                        scale: 1.05,
-                        transition: {
-                          type: "spring",
-                          stiffness: 400,
-                          damping: 10,
-                        },
-                      }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Button
-                        colorScheme="red"
-                        size="lg"
-                        leftIcon={<FaPlay />}
-                        bg={accentColor}
-                        _hover={{
-                          bg: hoverAccentColor,
-                        }}
-                        transition="all 0.2s"
-                        px={5}
-                        mr={3}
-                        fontWeight="bold"
-                        boxShadow="0 4px 15px rgba(230, 57, 70, 0.3)"
-                      >
-                        Watch
-                      </Button>
-                    </MotionBox>
-
-                    <MotionBox
-                      whileHover={{
-                        scale: 1.05,
-                        transition: {
-                          type: "spring",
-                          stiffness: 400,
-                          damping: 10,
-                        },
-                      }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Button
-                        as={Link}
-                        to={`/${featuredContent.media_type}/${featuredContent.id}`}
-                        variant="outline"
-                        size="lg"
-                        leftIcon={<FaInfoCircle />}
-                        _hover={{
-                          bg: "rgba(255,255,255,0.1)",
-                        }}
-                        transition="all 0.2s"
-                        borderColor="white"
-                      >
-                        Details
-                      </Button>
-                    </MotionBox>
-                  </HStack>
-                </MotionFlex>
-              </MotionFlex>
-            )}
-          </AnimatePresence>
-        </Container>
-      </Box>    
-      
-      {/* Main Content */}
-      
+                  )
+                )}
+              </SimpleGrid>
+            </Box>
+          )}
+          {/* --- Top Rated TV Shows Grid --- */}
+          {topRatedTvShows.length > 0 && (
+            <Box>
+              <SectionHeading
+                headingFont={headingFont}
+                accentColor={accentColor}
+                linkTo="/shows?sort=top_rated"
+              >
+                Top Rated TV Shows
+              </SectionHeading>
+              <SimpleGrid columns={[2, 3, 4, 5, 6]} spacing={4}>
+                {topRatedTvShows.slice(0, 6).map((tv, index) => (
+                  <ContentGrid
+                    key={tv.id}
+                    item={tv}
+                    index={index}
+                    contentType="tv"
+                    genreMap={genreMap}
+                  />
+                ))}
+              </SimpleGrid>
+            </Box>
+          )}
+        </VStack>
+      </Container>
     </Box>
   );
 };
