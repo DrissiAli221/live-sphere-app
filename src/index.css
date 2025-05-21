@@ -67,3 +67,12 @@
     transform: translateX(-50%);
   }
 }
+
+@keyframes scanlineMove {
+  0% {
+    background-position: 0 0, 0 0;
+  } /* Position both gradients */
+  100% {
+    background-position: 0 0, 75px 50px;
+  } /* Animate only the second gradient */
+}

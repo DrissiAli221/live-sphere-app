@@ -1,13 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Box, Image, Text, Flex } from "@chakra-ui/react"; // Badge no longer needed
+import { Box, Image, Text, Flex } from "@chakra-ui/react";
 import { FaStar } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { baseImageW500, fetchTrailers } from "@/services/api";
-import { truncateText } from "@/utils/helper";
+import { baseImageW500, fetchTrailers } from "@/services/api"; // Ensure these paths are correct
+import { truncateText } from "@/utils/helper"; // Ensure this path is correct
 
 // --- Placeholder Genre Map ---
-// You should replace this with your actual genre data source (Context, Redux, fetched data)
 const ALL_GENRES_MAP = {
   28: "Action",
   12: "Adventure",
@@ -27,7 +26,6 @@ const ALL_GENRES_MAP = {
   53: "Thriller",
   10752: "War",
   37: "Western",
-  // TV Genres
   10759: "Action & Adventure",
   10762: "Kids",
   10763: "News",
@@ -43,7 +41,7 @@ const ALL_GENRES_MAP = {
 const MotionBox = motion(Box);
 const MotionText = motion(Text);
 
-// --- Reusable Sketchy Line (straight) --- (Optional - Keep if used elsewhere or remove if not needed)
+// --- Reusable Sketchy Line ---
 const SketchyLine = ({
   orientation = "horizontal",
   size = "10px",
@@ -72,7 +70,7 @@ export default function ContentGrid({
   item,
   index,
   contentType,
-  genreMap = ALL_GENRES_MAP, // Use the map provided or the default placeholder
+  genreMap = ALL_GENRES_MAP,
 }) {
   const [trailerData, setTrailerData] = useState(null);
   const [isHovering, setIsHovering] = useState(false);
@@ -91,9 +89,10 @@ export default function ContentGrid({
   const themeText = "whiteAlpha.900";
   const themeSubtleText = "whiteAlpha.700";
 
-  // --- Fetch Trailer (unchanged) ---
+  // --- Fetch Trailer ---
   useEffect(() => {
     const fetchData = async () => {
+      if (!item || !item.id) return; // Guard clause
       setTrailerData(null);
       setTrailerLoaded(false);
       setTrailerError(false);
@@ -101,14 +100,14 @@ export default function ContentGrid({
         const data = await fetchTrailers(contentType, item.id);
         setTrailerData(data);
       } catch (error) {
-        console.error("Error fetching trailer:", error);
+        console.error("Error fetching trailer for item:", item?.id, error);
         setTrailerError(true);
       }
     };
     fetchData();
-  }, [item.id, contentType]);
+  }, [item?.id, contentType]); // Added item as dependency for safety
 
-  // --- Cleanup Timeouts (unchanged) ---
+  // --- Cleanup Timeouts ---
   useEffect(() => {
     return () => {
       if (hoverTimeoutId) clearTimeout(hoverTimeoutId);
@@ -116,7 +115,7 @@ export default function ContentGrid({
     };
   }, [hoverTimeoutId, exitTimeoutId]);
 
-  // --- Hover Handling (unchanged) ---
+  // --- Hover Handling ---
   const handleMouseEnter = () => {
     if (exitTimeoutId) clearTimeout(exitTimeoutId);
     const id = setTimeout(() => setIsHovering(true), 200);
@@ -132,7 +131,7 @@ export default function ContentGrid({
     setExitTimeoutId(exitId);
   };
 
-  // --- Video Status (unchanged) ---
+  // --- Video Status ---
   const handleVideoLoad = () => setTrailerLoaded(true);
   const handleVideoError = () => {
     setTrailerError(true);
@@ -147,15 +146,14 @@ export default function ContentGrid({
     ? `${baseImageW500}${item.backdrop_path}`
     : item.poster_path
     ? `${baseImageW500}${item.poster_path}`
-    : "https://via.placeholder.com/500x281?text=NO+IMAGE";
+    : "https://via.placeholder.com/500x281/121212/FFEC44?text=NO+IMAGE"; // Themed Placeholder
 
-  // --- Map Genre IDs to Names ---
   const displayedGenres = (item.genre_ids || [])
     .map((id) => genreMap[id])
     .filter(Boolean)
-    .slice(0, 2); // Show max 2 genres
+    .slice(0, 2);
 
-  // --- Animation Definitions (unchanged) ---
+  // --- Animation Definitions ---
   const cardTransition = { type: "tween", duration: 0.2, ease: "easeOut" };
   const contentTransition = { type: "tween", duration: 0.15, ease: "linear" };
   const cardVariants = {
@@ -192,20 +190,35 @@ export default function ContentGrid({
     },
   };
 
-  // Common font style
   const sketchyFontStyle = {
     fontFamily: "'Courier New', monospace",
     textTransform: "uppercase",
   };
 
+  if (!item) {
+    // Graceful handling if item is not provided
+    return (
+      <Box
+        p={2}
+        bg={themeDark}
+        border={`1px solid ${themeBorder}`}
+        borderRadius={0}
+        {...sketchyFontStyle}
+        fontSize="xs"
+        color={themeSubtleText}
+      >
+        Data unavailable.
+      </Box>
+    );
+  }
+
   return (
-    // --- Main Card Container ---
     <MotionBox
       as={Link}
       to={`/${contentType === "movie" ? "movie" : "tv"}/${item.id}`}
       key={item.id}
       borderRadius={0}
-      overflow="visible"
+      overflow="visible" // Allow shadows to peek out
       bg={themeBlack}
       position="relative"
       initial={{ opacity: 0, y: 10 }}
@@ -216,7 +229,7 @@ export default function ContentGrid({
           type: "tween",
           ease: "easeOut",
           duration: 0.3,
-          delay: index * 0.05,
+          delay: (index || 0) * 0.05,
         },
       }}
       variants={cardVariants}
@@ -225,27 +238,27 @@ export default function ContentGrid({
       onMouseLeave={handleMouseLeave}
       display="flex"
       flexDirection="column"
-      height="100%"
+      height="100%" // Ensure card takes full height of its grid cell if applicable
       _focus={{ outline: "none", boxShadow: "none" }}
       _focusVisible={{ outline: `2px dashed ${themeYellow}` }}
+      minWidth={0} // Important for flex/grid children to prevent overflow
     >
-      {/* --- Image/Video Area --- */}
+      {/* Image/Video Area */}
       <Box
         position="relative"
-        overflow="hidden"
+        overflow="hidden" // Keep this hidden to clip video/image
         aspectRatio="16 / 9"
         width="100%"
         borderBottom={`1px solid ${themeBorder}`}
       >
-        {/* --- Static Poster Image --- */}
-        <Image
+        <Image // Static Poster Image
           src={posterUrl}
-          alt={item.title || item.name}
+          alt={item.title || item.name || "Poster"}
           height="100%"
           width="100%"
           objectFit="cover"
           borderRadius={0}
-          fallbackSrc="https://via.placeholder.com/500x281?text=NO+IMAGE"
+          fallbackSrc="https://via.placeholder.com/500x281/121212/FFEC44?text=LOADING..."
           style={{
             opacity: isHovering && hasTrailer && trailerLoaded ? 0 : 1,
             transition: "opacity 0.3s linear",
@@ -255,16 +268,12 @@ export default function ContentGrid({
           }}
         />
 
-        {/* --- Trailer Overlay --- */}
         <AnimatePresence>
           {isHovering && hasTrailer && (
-            <MotionBox
+            <MotionBox // Trailer Overlay
               key="trailer-box"
               position="absolute"
-              top={0}
-              left={0}
-              right={0}
-              bottom={0}
+              inset={0}
               bg={themeBlack}
               initial={{ opacity: 0 }}
               animate={{
@@ -275,7 +284,6 @@ export default function ContentGrid({
               overflow="hidden"
               borderRadius={0}
             >
-              {/* Loading state */}
               {!trailerLoaded && !trailerError && (
                 <Flex
                   position="absolute"
@@ -290,10 +298,9 @@ export default function ContentGrid({
                   LOADING...
                 </Flex>
               )}
-              {/* Iframe */}
               <iframe
                 ref={videoRef}
-                src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&controls=0&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&playsinline=1&mute=0`}
+                src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&controls=0&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&playsinline=1&mute=0`} // Set mute=1 for better UX with autoplay
                 allow="autoplay; encrypted-media;"
                 style={{
                   position: "absolute",
@@ -310,14 +317,12 @@ export default function ContentGrid({
                 onError={handleVideoError}
                 title={`${item.title || item.name} trailer preview`}
               />
-              {/* Optional straight sketchy lines */}
+              {/* Optional Sketchy Lines - Keep or remove */}
               <SketchyLine
                 orientation="horizontal"
                 size="30%"
                 top="10%"
                 left="5%"
-                offset="1px"
-                thickness="1px"
                 color="rgba(255, 236, 68, 0.2)"
               />
               <SketchyLine
@@ -326,18 +331,17 @@ export default function ContentGrid({
                 bottom="15%"
                 right="8%"
                 offset="-1px"
-                thickness="1px"
                 color="rgba(255, 236, 68, 0.15)"
               />
             </MotionBox>
           )}
         </AnimatePresence>
 
-        {/* --- Corner Badges/Info --- */}
         <AnimatePresence>
+          {" "}
+          {/* Corner Badges */}
           {!isHovering && (
             <>
-              {/* Rating Badge */}
               <MotionBox
                 key="rating-badge"
                 position="absolute"
@@ -369,7 +373,6 @@ export default function ContentGrid({
                   </Text>
                 </Flex>
               </MotionBox>
-              {/* Year Badge */}
               {(item.release_date || item.first_air_date) && (
                 <MotionBox
                   key="year-badge"
@@ -400,61 +403,69 @@ export default function ContentGrid({
         </AnimatePresence>
       </Box>
 
-      {/* --- Info Section --- */}
+      {/* Info Section */}
       <MotionBox
         px="2"
         py="1.5"
         variants={infoContentVariants}
-        initial="visible"
+        initial="visible" // Initial state on mount
         animate={
           isHovering && hasTrailer && trailerLoaded ? "hidden" : "visible"
-        }
-        overflow="hidden"
+        } // Animate based on hover and trailer state
         bg={themeDark}
-        borderTop={`1px solid ${themeBorder}`} // Kept border for separation
+        borderTop={`1px solid ${themeBorder}`}
+        flexGrow={1} // Allow this section to take remaining space if needed, but content controls height primarily
+        display="flex"
+        flexDirection="column"
+        justifyContent="space-between" // Pushes content to top and bottom (useful if info grows) - optional
+        minHeight="48px" // Approximate minimum height for title + 1 row of genres. Adjust as needed.
       >
-        {/* Title */}
+        {/* Title - Constrained with explicit overflow properties */}
         <MotionText
           color={themeText}
           fontWeight="bold"
-          fontSize="xs"
-          noOfLines={1}
-          mb="1" // Keep margin bottom for title
+          fontSize="xs" // Keep it small
           {...sketchyFontStyle}
+          mb="1" // Keep small margin for separation
+          width="100%" // Ensure it takes full width of its parent
+          whiteSpace="nowrap" // Prevent wrapping before ellipsis
+          overflow="hidden" // Hide overflow
+          textOverflow="ellipsis" // Apply ellipsis
+          title={item.title || item.name} // Full title on hover
         >
-          {truncateText(item.title || item.name, 32)}
+          {item.title || item.name}
+          {/* Truncate text prop here might be redundant with CSS, but can be a fallback */}
+          {/* {truncateText(item.title || item.name, 32)} */}
         </MotionText>
 
-        {/* Genres Display */}
+        {/* Genres Display - Fixed height and strict overflow control */}
         <Flex
-          flexWrap="nowrap"
-          gap="1.5"
-          overflow="hidden"
+          flexWrap="nowrap" // Genres must not wrap
+          overflow="hidden" // Hide any genres that overflow this fixed height flex container
           alignItems="center"
-          h="14px"
+          h="16px" // Slightly increased fixed height to better accommodate font
+          width="100%" // Ensure full width to allow text-overflow to calculate correctly
         >
-          {" "}
-          {/* Fixed height */}
           {displayedGenres.length > 0 ? (
             displayedGenres.map((genreName, i, arr) => (
               <React.Fragment key={genreName + i}>
                 <Text
                   color={themeSubtleText}
-                  fontSize="10px"
+                  fontSize="9px" // Made even smaller for genres
                   {...sketchyFontStyle}
-                  letterSpacing="normal"
-                  whiteSpace="nowrap"
+                  letterSpacing="tighter" // Adjusted letter spacing for small fonts
+                  whiteSpace="nowrap" // Keep genre name on one line (ellipsis applied by parent if it's too long in rare cases)
+                  mr={i < arr.length - 1 ? "0.5" : "0"} // Margin only if not the last genre
                 >
-                  {genreName}
+                  {truncateText(genreName, 15)}{" "}
+                  {/* Optional: Truncate individual genre names if they are extremely long */}
                 </Text>
-                {i < arr.length - 1 && ( // Show separator only between genres
+                {i < arr.length - 1 && (
                   <Box
                     as="span"
                     color={themeYellow}
-                    alignItems="center"
-                    fontWeight="bold"
+                    mx="1"
                     fontSize="10px"
-                    mx="0.5"
                     lineHeight="10px"
                   >
                     •
@@ -465,9 +476,9 @@ export default function ContentGrid({
           ) : (
             <Text
               color={themeSubtleText}
-              fontSize="10px"
+              fontSize="9px"
               {...sketchyFontStyle}
-              letterSpacing="normal"
+              letterSpacing="tighter"
             >
               -
             </Text>

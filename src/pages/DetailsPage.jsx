@@ -31,7 +31,7 @@ function DetailsPage() {
   const { type, id } = useParams();
 
   //   useEffect(() => {
-      // Fetch details
+  // Fetch details
   //     fetchDetails(type, id)
   //       .then((res) => setDetails(res))
   //       .catch((err) => console.log(err))
@@ -201,18 +201,17 @@ function DetailsPage() {
                 {/* Subscribe Button */}
 
                 <Flex gap="2" mt="5" justifyContent="center" w="30%" mb="auto">
-                    <AnimatedSubscribeButton>
-                      <span className="group inline-flex items-center">
-                        Add To Watchlist
-                        <ChevronRightIcon className="ml-1 size-4 transition-transform duration-300 group-hover:translate-x-1" />
-                      </span>
-                      <span className="group inline-flex items-center">
-                        <CheckIcon className="mr-2 size-4" />
-                        Added to Watchlist
-                      </span>
-                    </AnimatedSubscribeButton>
+                  <AnimatedSubscribeButton>
+                    <span className="inline-flex items-center group">
+                      Add To Watchlist
+                      <ChevronRightIcon className="ml-1 transition-transform duration-300 size-4 group-hover:translate-x-1" />
+                    </span>
+                    <span className="inline-flex items-center group">
+                      <CheckIcon className="mr-2 size-4" />
+                      Added to Watchlist
+                    </span>
+                  </AnimatedSubscribeButton>
                 </Flex>
-
               </Flex>
 
               {/* Genre */}

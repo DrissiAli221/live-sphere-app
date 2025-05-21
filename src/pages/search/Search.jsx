@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Link as RouterLink } from "react-router-dom";
 
 // --- Chakra UI Primitive Imports ---
 import {
@@ -36,6 +37,17 @@ const MotionLink = motion(Link);
 // --- CUSTOM THEME COMPONENTS ---
 // ========================================================================
 // Re-paste/Import SketchButton & SquigglyLine if not globally available
+
+const IMAGE_BASE_URL_W500 = "https://image.tmdb.org/t/p/w500";
+const PLACEHOLDER_IMAGE =
+  "https://via.placeholder.com/500x750/0C0C1B/FFEC44?text=No+Image"; // Example placeholder
+const accentColor = "#FFEC44";
+const headingFont = "'Courier New', monospace";
+const baseBg = "#0C0C1B"; // Assuming this is the dark background
+const mutedTextColor = "gray.400";
+const borderColor = "rgba(255, 255, 255, 0.1)"; // Border from Search
+const shadowColor = "rgba(0, 0, 0, 0.5)"; // Dark shadow color
+
 const ScribbleEffect = ({ isActive }) => (
   <motion.svg
     width="100%"
@@ -263,101 +275,211 @@ const SquigglyLine = ({
 // ========================================================================
 // --- ENHANCED CONTENT GRID COMPONENT (Enhancement 7) ---
 // ========================================================================
-const ContentGrid = ({ item, index, contentType }) => {
-  const accentColor = "#FFEC44"; // Defined here for consistency if not passed as prop
+const ContentGrid = ({ item, contentType }) => {
+  const {
+    title,
+    name,
+    poster_path,
+    vote_average,
+    release_date,
+    first_air_date,
+    id,
+  } = item;
+  const itemTitle = title || name || "Untitled";
+  const year =
+    new Date(release_date || first_air_date || Date.now()).getFullYear() ||
+    "N/A";
+  const rating = vote_average != null ? vote_average.toFixed(1) : "N/A";
+
+  const linkHoverVariant = {
+    y: -5, // Slightly less lift combined with shadow
+    // Offset shadow like the SketchButton
+    boxShadow: `4px 4px 0px ${accentColor}`,
+    borderColor: accentColor, // Brighten border on hover
+    transition: { type: "spring", stiffness: 400, damping: 18 },
+  };
+
+  const overlayVariant = {
+    hidden: { opacity: 0, y: 15 }, // Start slightly lower and fade in
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.3, ease: "easeOut" },
+    },
+  };
+
+  const imageVariant = {
+    rest: {
+      scale: 1,
+      filter: "contrast(1.05) saturate(0.85) brightness(0.95) sepia(0.1)",
+    }, // Base filter
+    hover: {
+      scale: 1.05, // Slight zoom
+      // Slightly enhance filter on hover? Optional.
+      // filter: "contrast(1.1) saturate(0.9) brightness(1.0) sepia(0.15)",
+      transition: { duration: 0.35, ease: "easeOut" },
+    },
+  };
 
   return (
+    // Main Card Link container
     <MotionLink
-      to={`/${contentType}/${item.id}`}
-      whileHover={{ y: -8, transition: { type: "spring", stiffness: 300 } }}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      // Removed index-based delay from here, handled by parent grid stagger
-      transition={{ duration: 0.3 }}
+      as={RouterLink} // Use Chakra Link wrapping React Router Link
+      to={`/${contentType}/${id}`}
+      aria-label={`View details for ${itemTitle}`}
+      title={itemTitle}
+      display="block"
       position="relative"
-      overflow="hidden"
-      borderRadius="sm"
-      border="1px solid"
-      borderColor="rgba(255,255,255,0.1)"
-      _hover={{ borderColor: accentColor }} // Add hover border color change
+      overflow="visible" // Allow shadow to be visible
+      bg={`rgba(20, 20, 30, 0.7)`} // Slightly darker card background
+      borderRadius="none" // Sharp edges
+      border="1px dashed" // Dashed border aesthetic
+      borderColor={borderColor} // Subtle border color
+      width="100%"
+      height="100%" // Ensure link takes full grid cell space
+      sx={{
+        aspectRatio: "2 / 3", // Maintain poster aspect ratio
+        // Prevent child motions from interfering if needed
+        // '& > *': { pointerEvents: 'none' },
+        // pointerEvents: 'auto',
+      }}
+      initial={{
+        opacity: 0.8, // Start slightly faded
+        y: 10,
+        boxShadow: `2px 2px 0px ${shadowColor}`, // Initial subtle offset shadow
+        borderColor: borderColor,
+      }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={linkHoverVariant} // Apply custom hover variants
+      transition={{ duration: 0.4, ease: "easeOut" }} // Fade-in/slide-up animation
     >
-      {/* Media Type Badge */}
+      {/* Inner container to clip the image scaling */}
       <Box
-        position="absolute"
-        top={2}
-        right={2}
-        bg="rgba(0,0,0,0.7)"
-        color={contentType === "movie" ? "#FF5757" : "#57B8FF"} // Example distinct colors
-        fontSize="xs"
-        px={2}
-        py={1}
-        zIndex={2}
-        textTransform="uppercase"
-        fontWeight="bold"
-        borderRadius="sm" // Slight rounding for badge
+        position="relative"
+        width="100%"
+        height="100%"
+        overflow="hidden"
+        zIndex={1}
+        borderRadius="none"
       >
-        {contentType}
-      </Box>
+        {/* Media Type Badge */}
+        <Box
+          position="absolute"
+          top="8px"
+          left="8px" // Changed to left for variety
+          bg={accentColor}
+          color={baseBg} // Dark text on yellow bg
+          fontSize="10px"
+          px={1.5}
+          py={0.5}
+          zIndex={3} // Above overlay
+          textTransform="uppercase"
+          fontFamily={headingFont} // Monospace font
+          fontWeight="bold"
+          letterSpacing="0.5px"
+          borderRadius="none" // Sharp edges
+          // Optional: add a subtle border to the badge
+          // border={`1px solid ${baseBg}`}
+        >
+          {contentType === "movie" ? "Film" : "TV"}
+        </Box>
 
-      <Box overflow="hidden" position="relative">
-        {" "}
-        {/* Added relative for image hover */}
-        <MotionBox // Wrap image in motion box for scale effect
+        {/* Image - applies filter and scale */}
+        <MotionBox
+          height="100%"
           width="100%"
-          height="auto"
-          transition={{ duration: 0.3 }}
-          whileHover={{ scale: 1.05 }} // Apply scale on hover directly here
+          variants={imageVariant}
+          initial="rest"
+          animate="rest" // Needed for initial filter application if filter is in variants
+          whileHover="hover" // Trigger scaling and filter change on parent Link hover
         >
           <Image
-            src={`https://image.tmdb.org/t/p/w500${item.poster_path}`}
-            alt={item.title || item.name}
+            src={
+              poster_path
+                ? `${IMAGE_BASE_URL_W500}${poster_path}`
+                : PLACEHOLDER_IMAGE
+            }
+            alt="" // Decorative, link provides context
             width="100%"
-            height="auto" // Ensure aspect ratio is maintained
-            objectFit="cover" // Ensure image covers the area
-            fallbackSrc="https://via.placeholder.com/300x450?text=No+Image"
+            height="100%"
+            objectFit="cover"
+            fallbackSrc={PLACEHOLDER_IMAGE}
+            loading="lazy"
+            borderRadius="none" // Sharp edges for image too
+            // Filter is now applied via Motion variant
+            // filter="contrast(1.05) saturate(0.85) brightness(0.95) sepia(0.1)"
+            willChange="transform, filter" // Hint browser for animations
           />
         </MotionBox>
-      </Box>
 
-      {/* Overlay on hover */}
-      <MotionBox
-        position="absolute"
-        bottom={0}
-        left={0}
-        right={0}
-        height="40%" // Increased height for more info space
-        bg="linear-gradient(to top, rgba(0,0,0,0.95) 20%, rgba(0,0,0,0))" // Stronger gradient
-        initial={{ opacity: 0, y: 15 }} // Start slightly lower and invisible
-        whileHover={{ opacity: 1, y: 0 }} // Fade in and slide up
-        transition={{ duration: 0.25 }}
-        display="flex"
-        flexDirection="column"
-        justifyContent="flex-end"
-        p={3} // Increased padding
-        zIndex={1} // Ensure it's above the image
-      >
-        <Text fontSize="sm" fontWeight="bold" color="white" noOfLines={1}>
-          {item.title || item.name}
-        </Text>
-        <Flex align="center" mt={1} gap={2}>
-          {" "}
-          {/* Added gap */}
-          <Flex align="center">
-            <Box as="span" color="yellow.400" mr={1} fontSize="xs">
-              ★
-            </Box>{" "}
-            {/* Smaller star */}
-            <Text fontSize="xs" color="gray.300">
-              {item.vote_average?.toFixed(1) || "N/A"}
+        {/* Overlay on hover */}
+        <MotionBox
+          position="absolute"
+          bottom={0}
+          left={0}
+          right={0}
+          height="40%" // Overlay height
+          // Gradient from base background color (semi-transparent) to fully transparent
+          bg={`linear-gradient(to top, ${baseBg} 20%, rgba(12,12,27, 0.8) 60%, transparent 100%)`}
+          variants={overlayVariant}
+          initial="hidden"
+          whileHover="visible" // Triggered by parent Link hover
+          display="flex"
+          flexDirection="column"
+          justifyContent="flex-end"
+          alignItems="flex-start"
+          p={3} // Padding inside overlay
+          zIndex={2} // Overlay above image, below badge
+          borderRadius="none" // Sharp edges for overlay
+        >
+          {/* Title - Monospaced, Uppercase */}
+          <Text
+            fontFamily={headingFont}
+            fontSize="sm"
+            fontWeight="bold"
+            color="white" // Use direct white or themed text color
+            noOfLines={2} // Allow two lines for longer titles
+            textTransform="uppercase"
+            letterSpacing="wider" // Characteristic spacing
+            lineHeight="short" // Tighter line height
+            mb={1}
+          >
+            {itemTitle}
+          </Text>
+          {/* Rating and Year */}
+          <Flex align="center" justify="flex-start" gap={3} width="100%">
+            {/* Rating */}
+            <Flex align="center">
+              <Text
+                as="span"
+                color={accentColor}
+                mr={1}
+                fontSize="md"
+                verticalAlign="middle"
+              >
+                ★
+              </Text>
+              <Text
+                fontSize="xs"
+                fontFamily="sans-serif" // Use a standard sans-serif for readability of numbers
+                color={mutedTextColor}
+                fontWeight="medium" // Slightly bolder for numbers
+              >
+                {rating}
+              </Text>
+            </Flex>
+            {/* Year */}
+            <Text
+              fontSize="xs"
+              fontFamily="sans-serif" // Use a standard sans-serif for readability
+              color={mutedTextColor}
+              fontWeight="medium"
+            >
+              {year}
             </Text>
           </Flex>
-          <Text fontSize="xs" color="gray.400">
-            {new Date(
-              item.release_date || item.first_air_date || Date.now()
-            ).getFullYear() || ""}
-          </Text>
-        </Flex>
-      </MotionBox>
+        </MotionBox>
+      </Box>
     </MotionLink>
   );
 };

@@ -56,6 +56,15 @@ const MotionHeading = motion(Heading); // For animating heading
 const baseShadowColor = "rgba(0, 0, 0, 0.6)"; // Dark color for the offset shadow
 const hoverAccentGlow = `rgba(255, 236, 68, 0.25)`; // Subtle yellow glow for hover
 
+// Background Effects
+const NOISE_OPACITY = 0.06;
+const SCANLINES_OPACITY = 0.18;
+const VIGNETTE_INTENSITY = 0.45;
+const NOISE_BG_URL =
+  "url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXVדהזה/v7+/v7+/v7+////v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+///+/v7+/v7+/v7+/v7+/v7+/s8wT4AAAAF3RSTlPF48P117/Aw869zKrQuLOqphh5i59qcOMVsAAAAJZJREFUOI1jZobgMAIALAwMAyMWBgYW0AYsDLSAAVDCx/8D5cAxkvtR40lAFBl6vA5I7gBxQ7FBAmTk4b+DBwARHyG1DQEIGbQAAYQAHj6HjwxEHpXjF8AMDEQgUMDDhx4A9UikwMhoAAAUY4KHAACAEs6HF4HgQpAQAyNggkAJzAGYWFkAMjIKAEQz0mkwAACMQAAA1AUQAASYAFhI07u0aF4UAAAAAElFTkSuQmCC)";
+
+const ACCENT_COLOR = "#FFEC44"; // Primary yellow accent    
+
 // --- Scribble Effect ---
 const ScribbleEffect = ({ isActive }) => (
   <motion.svg
@@ -400,12 +409,34 @@ function Shows() {
 
   return (
     <Box position="relative" bg={baseBg} minHeight="100vh">
-      {/* --- Fixed Background Image & Gradient --- */}
+      <Box
+        position="absolute"
+        inset={0}
+        zIndex={1}
+        pointerEvents="none"
+        _after={{
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          bg: NOISE_BG_URL,
+          opacity: NOISE_OPACITY,
+          mixBlendMode: "overlay",
+        }}
+        _before={{
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          background: `linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, ${ACCENT_COLOR}08, #00FF0005, #0000FF08)`,
+          backgroundSize: "100% 3px, 5px 100%",
+          opacity: SCANLINES_OPACITY,
+          mixBlendMode: "color-dodge",
+        }}
+      />
       <AnimatePresence mode="sync">
         {currentBackdrop && (
           <MotionBox
             key={randomShow?.id || "bg-fallback"}
-            position="fixed"
+            position="absolute"
             top={0}
             left={0}
             right={0}

@@ -9,6 +9,7 @@ import {
   FaExclamationTriangle,
 } from "react-icons/fa"; // Example icons
 import { Spinner } from "@chakra-ui/react";
+import ScrollToTop from "./components/ScrollToTop";
 
 // Theme Constants
 const accentColor = "#FFEC44"; // Yellow
@@ -35,6 +36,7 @@ function App() {
 
   return (
     <>
+      <ScrollToTop />
       <Toaster
         position="bottom-right"
         gutter={12}
@@ -62,9 +64,9 @@ function App() {
           success: {
             icon: typeIcons.success, // Directly use the component
             style: {
-              background: "rgba(34, 197, 94, 0.7)", 
-              border: `1px solid #166534`, 
-              boxShadow: `4px 4px 0px 0px #14532d`, 
+              background: "rgba(34, 197, 94, 0.7)",
+              border: `1px solid #166534`,
+              boxShadow: `4px 4px 0px 0px #14532d`,
             },
           },
           error: {
@@ -82,7 +84,7 @@ function App() {
           // --- Custom Info/Warning --- (Example)
           info: {
             icon: typeIcons.info,
-            style: { 
+            style: {
               background: "rgba(59, 130, 246, 0.5)",
               border: `1px solid #1e40af`,
               boxShadow: `4px 4px 0px 0px #1e3a8a`,

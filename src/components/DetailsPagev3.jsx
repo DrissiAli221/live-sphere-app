@@ -1,7 +1,5 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
-
-// --- Chakra UI Primitive Imports ---
+import React, { useEffect, useState, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import {
   Box,
   Flex,
@@ -11,38 +9,26 @@ import {
   HStack,
   VStack,
   Heading,
-
   Spinner,
 } from "@chakra-ui/react";
+import { motion } from "framer-motion";
 
-// --- Framer Motion Imports ---
-import { motion, AnimatePresence } from "framer-motion";
-
-// --- Service/Util/Component Imports ---
 import {
   baseImageOriginal,
   baseImageW500,
   fetchCredits,
   fetchDetails,
   fetchMovieImages,
-} from "@/services/api"; // Adjust path
+} from "@/services/api";
 
-import { convertMinutesToHours, resolveRatingNumber } from "@/utils/helper"; // Adjust path
-import TVShowEpisodes from "./TVShowEpisodes"; // Adjust path
-import MovieDetailsPage from "./MovieDetailsPage"; // Adjust path
-import { useAuth } from "@/context/AuthProvider"; // Adjust path
-import { Toaster, toaster } from "@/components/ui/toaster"; // Adjust path if needed (using shadcn toaster)
-import { useFirestore } from "@/services/firestore"; // Adjust path
-
-// --- Icon Imports ---
+import { convertMinutesToHours, resolveRatingNumber } from "@/utils/helper";
+import TVShowEpisodes from "./TVShowEpisodes";
+import MovieDetailsPage from "./MovieDetailsPage";
+import { useAuth } from "@/context/AuthProvider";
+import { Toaster } from "@/components/ui/toaster";
+import { useFirestore } from "@/services/firestore";
 import { FaPlay, FaStar, FaClock, FaUsers, FaFilm } from "react-icons/fa";
-import { BsCalendarDate } from "react-icons/bs";
-import {
-  MdInfoOutline,
-  MdBookmarkAdd,
-  MdBookmarkAdded,
-  MdShare,
-} from "react-icons/md";
+import { MdBookmarkAdd, MdBookmarkAdded } from "react-icons/md";
 import RecommendationsSection from "./RecommendationSection";
 
 // ========================================================================
@@ -482,8 +468,8 @@ function DetailsPage() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: `linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 100%)`,
-          backdropFilter: "blur(2px)",
+          background: `linear-gradient(0deg, rgba(0,0,0,0.90) 0%, rgba(0,0,0,0.80) 100%)`,
+          backdropFilter: "blur(1px)",
         }}
       >
         {details?.backdrop_path && (
@@ -493,7 +479,7 @@ function DetailsPage() {
             width="100%"
             height="100%"
             objectFit="cover"
-            opacity={0.35}
+            opacity={0.8}
             filter="blur(2px)"
           />
         )}

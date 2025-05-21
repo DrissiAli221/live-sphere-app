@@ -99,49 +99,70 @@ export const fetchGenres = async (type) => {
 
 // fetch tv show providers
 export const fetchProviders = async () => {
-    const { data } = await axios.get(`${baseURL}/watch/providers/tv?api_key=${apiKey}`);
-    return data.results;
-}
+  const { data } = await axios.get(
+    `${baseURL}/watch/providers/tv?api_key=${apiKey}`
+  );
+  return data.results;
+};
 
 //fetch tv show details
 export const fetchTVDetails = async (id) => {
-    const { data } = await axios.get(`${baseURL}/tv/${id}?api_key=${apiKey}`);
-    return data;
-}
+  const { data } = await axios.get(`${baseURL}/tv/${id}?api_key=${apiKey}`);
+  return data;
+};
 
 //fetch tv show season details
 export const fetchTVSeasonDetails = async (id, seasonNumber) => {
-    const { data } = await axios.get(`${baseURL}/tv/${id}/season/${seasonNumber}?api_key=${apiKey}`);
-    return data;
-}
+  const { data } = await axios.get(
+    `${baseURL}/tv/${id}/season/${seasonNumber}?api_key=${apiKey}`
+  );
+  return data;
+};
 
-// fetch tv recommendations 
+// fetch tv recommendations
 export const fetchTVRecommendations = async () => {
-    const { data } = await axios.get(`${baseURL}/tv/${id}/recommendations?api_key=${apiKey}`);
-    return data.results;
-}
+  const { data } = await axios.get(
+    `${baseURL}/tv/${id}/recommendations?api_key=${apiKey}`
+  );
+  return data.results;
+};
 
 // fetch Similar Movies
 export const fetchSimilarMovies = async (id) => {
-    const { data } = await axios.get(`${baseURL}/movie/${id}/similar?api_key=${apiKey}`);
-    return data.results;
-}
+  const { data } = await axios.get(
+    `${baseURL}/movie/${id}/similar?api_key=${apiKey}`
+  );
+  return data.results;
+};
 
 // fetch Movie Videos
 export const fetchMovieVideos = async (id) => {
-    const { data } = await axios.get(`${baseURL}/movie/${id}/videos?api_key=${apiKey}`);
-    return data.results;
-}
+  const { data } = await axios.get(
+    `${baseURL}/movie/${id}/videos?api_key=${apiKey}`
+  );
+  return data.results;
+};
 
 // Search All
 export const searchAll = async (query, page) => {
-    const { data } = await axios.get(`${baseURL}/search/multi?api_key=${apiKey}&query=${query}&page=${page}`);
-    return data;
-}
+  const { data } = await axios.get(
+    `${baseURL}/search/multi?api_key=${apiKey}&query=${query}&page=${page}`
+  );
+  return data;
+};
 
 // fetch popular people
 export const fetchPopularPeople = async () => {
-    const { data } = await axios.get(`${baseURL}/person/popular?api_key=${apiKey}`);
-    return data.results;
-}
+  const { data } = await axios.get(
+    `${baseURL}/person/popular?api_key=${apiKey}`
+  );
+  return data.results;
+};
 
+// fetch popular netflix shows
+export const fetchPopularNetflixShows = async () => {
+  const { data } = await axios.get(
+    `${baseURL}/discover/tv?api_key=${apiKey}&language=en-US&sort_by=popularity.desc&with_companies=178464`
+  );
+  return data.results;
+};

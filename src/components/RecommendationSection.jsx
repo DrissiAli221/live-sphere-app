@@ -17,8 +17,9 @@ import {
   VStack,
   Heading,
   Spinner,
-  Skeleton, // We will use this for loading state
+  Skeleton,
   Icon,
+  Container,
 } from "@chakra-ui/react";
 
 // --- Framer Motion Imports ---
@@ -27,19 +28,106 @@ import { motion, AnimatePresence } from "framer-motion";
 // --- Service/Util/Component Imports ---
 import {
   baseImageW500,
-  baseImageOriginal, // Keep both in case backdrop is needed as fallback
+  baseImageOriginal,
   fetchRecommendations,
 } from "@/services/api"; // !!! UPDATE THIS PATH AS NEEDED !!!
 
 // --- Icon Imports ---
 import {
   FaFilm,
+  FaStar,
+  FaCalendarAlt,
   FaChevronLeft,
   FaChevronRight,
-  FaArrowRight,
-  FaStar,
-  FaCalendarAlt, // Added for date
 } from "react-icons/fa";
+
+// --- Util Imports (Ensure truncateText exists if used) ---
+import { truncateText } from "@/utils/helper"; // Make sure this helper is available/correctly imported if using truncateText
+
+// ========================================================================
+// === THEME CONSTANTS (Defined In-File) ===
+// ========================================================================
+
+const ALL_GENRES_MAP = {
+  28: "Action",
+  12: "Adventure",
+  16: "Animation",
+  35: "Comedy",
+  80: "Crime",
+  99: "Documentary",
+  18: "Drama",
+  10751: "Family",
+  14: "Fantasy",
+  36: "History",
+  27: "Horror",
+  10402: "Music",
+  9648: "Mystery",
+  10749: "Romance",
+  878: "Sci-Fi",
+  53: "Thriller",
+  10752: "War",
+  37: "Western",
+  // TV Genres
+  10759: "Action & Adventure",
+  10762: "Kids",
+  10763: "News",
+  10764: "Reality",
+  10765: "Sci-Fi & Fantasy",
+  10766: "Soap",
+  10767: "Talk",
+  10768: "War & Politics",
+};
+
+const THEME = {
+  colors: {
+    black: "#0a0a0a",
+    darkBg: "#08080A", // Very dark base for section BG
+    offBlack: "#101012",
+    cardBg: "#141416", // BG for card elements
+    accent: "#FFEC44",
+    border: "rgba(255, 255, 255, 0.2)",
+    borderSubtle: "rgba(255, 255, 255, 0.1)",
+    borderMedium: "rgba(255, 255, 255, 0.4)",
+    borderAccent: "#FFEC44",
+    shadow: "#000000", // Pure Black shadow
+    text: "whiteAlpha.900",
+    subtleText: "whiteAlpha.700",
+    gradientStart: "rgba(20, 20, 22, 1)", // Opaque start for overlay
+    gradientMid: "rgba(20, 20, 22, 0.85)", // Stronger middle gradient
+    gradientEnd: "rgba(20, 20, 22, 0)", // Fade to transparent
+    projectorBeam: "rgba(255, 236, 68, 0.07)", // Slightly more intense beam
+  },
+  fonts: {
+    heading: "'Courier New', monospace",
+    body: "'Courier New', monospace",
+  },
+  styles: {
+    // Common styles
+    heading: {
+      fontFamily: "'Courier New', monospace",
+      textTransform: "uppercase",
+      letterSpacing: "wider",
+    },
+    body: { fontFamily: "'Courier New', monospace", letterSpacing: "normal" },
+  },
+  effects: {
+    // Textures & Effects
+    noiseBg:
+      "url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXVדהזה/v7+/v7+/v7+////v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+///+/v7+/v7+/v7+/v7+/v7+/s8wT4AAAAF3RSTlPF48P117/Aw869zKrQuLOqphh5i59qcOMVsAAAAJZJREFUOI1jZobgMAIALAwMAyMWBgYW0AYsDLSAAVDCx/8D5cAxkvtR40lAFBl6vA5I7gBxQ7FBAmTk4b+DBwARHyG1DQEIGbQAAYQAHj6HjwxEHpXjF8AMDEQgUMDDhx4A9UikwMhoAAAUY4KHAACAEs6HF4HgQpAQAyNggkAJzAGYWFkAMjIKAEQz0mkwAACMQAAA1AUQAASYAFhI07u0aF4UAAAAAElFTkSuQmCC)",
+    noiseOpacity: 0.08, // Increased grain visibility
+    // Scanline effect values integrated into BG section now
+    vignetteColor: "rgba(0, 0, 0, 0.3)",
+    flickerOpacityMin: 0.96, // More noticeable flicker range
+    flickerOpacityMax: 1.0,
+  },
+};
+const POSTER_ASPECT_RATIO = 2 / 3;
+const SHADOW_OFFSET_X = 6;
+const SHADOW_OFFSET_Y = 6;
+
+// Sketchy Edge Mask
+const roughEdgesFilterId = "poster-rough-edges-slider";
+const roughEdgesMaskCss = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450"><filter id="${roughEdgesFilterId}"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" seed="10" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="12" xChannelSelector="R" yChannelSelector="G"/></filter><rect width="100%" height="100%" filter="url(%23${roughEdgesFilterId})" /></svg>#${roughEdgesFilterId}')`; // Added seed
 
 // ========================================================================
 // === MOTION COMPONENT ALIASES ===
@@ -47,859 +135,985 @@ import {
 const MotionBox = motion(Box);
 const MotionFlex = motion(Flex);
 const MotionText = motion(Text);
-const MotionDiv = motion.div; // For generic motion divs like shadow, underline
 const MotionImage = motion(Image);
+const MotionVStack = motion(VStack);
+const MotionHeading = motion(Heading);
+const MotionDiv = motion.div; // Needed for some helpers
+const MotionPath = motion.path; // Needed for some helpers
 
 // ========================================================================
-// === THEME CONSTANTS ===
-// ========================================================================
-const themeColors = {
-  black: "#0a0a0a",
-  darkBg: "#141414", // Card background fallback / skeleton base
-  yellow: "#FFEC44", // Main accent
-  border: "#303030", // Default dark border
-  borderHover: "#FFEC44", // Hover border = accent
-  shadow: "#000000", // PURE BLACK for the offset shadow
-  text: "whiteAlpha.900",
-  subtleText: "whiteAlpha.600", // Lighter grey for less emphasis
-  gradientStart: "rgba(10, 10, 10, 0.95)", // Dark gradient start
-  gradientEnd: "rgba(10, 10, 10, 0.0)", // Fade to transparent
-};
-
-const sketchyFontStyle = {
-  fontFamily: "'Courier New', monospace",
-  textTransform: "uppercase",
-  letterSpacing: "tight", // Tighter can look more 'blocky'
-};
-
-// ========================================================================
-// === HELPER & THEMED COMPONENTS (Defined within this file) ===
+// === HELPER & THEMED COMPONENTS (Defined In-File) ===
 // ========================================================================
 
 // --- Scribble Effect ---
-const ScribbleEffect = ({ isActive, color = themeColors.yellow }) => (
-  <motion.svg
-    width="100%"
-    height="100%"
-    viewBox="0 0 300 100"
-    initial={false}
-    style={{
-      position: "absolute",
-      top: 0,
-      left: 0,
-      pointerEvents: "none",
-      zIndex: 10, // Above content, below absolute corners?
-      opacity: 0.5,
-    }}
-    aria-hidden="true" // Decorative
-    animate={isActive ? "visible" : "hidden"}
-    variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
-  >
-    <motion.path
-      d="M10,50 C50,30 100,70 150,50 C200,30 250,60 290,50" // Example path
-      fill="transparent"
-      stroke={color}
-      strokeWidth="1.5" // Thinner scribble
-      strokeDasharray="4,4" // Adjust dash
-      initial={{ pathLength: 0, opacity: 0 }}
-      animate={
-        isActive
-          ? { pathLength: 1, opacity: 0.4 } // Lower opacity for subtlety
-          : { pathLength: 0, opacity: 0 }
-      }
-      transition={{ duration: 0.5, ease: "easeInOut" }}
-      style={{ strokeDashoffset: 0 }}
-    />
-  </motion.svg>
+const ScribbleEffect = React.memo(
+  ({ isActive, color = THEME.colors.accent }) => (
+    <MotionBox
+      position="absolute"
+      top="-10%"
+      left="-10%"
+      width="120%"
+      height="120%"
+      pointerEvents="none"
+      zIndex={10}
+      aria-hidden="true"
+      initial={{ opacity: 0 }}
+      animate={isActive ? { opacity: 0.6 } : { opacity: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <motion.svg
+        width="100%"
+        height="100%"
+        viewBox="0 0 300 100"
+        initial={false}
+      >
+        <motion.path
+          d="M-5,50 C45,20 95,80 150,50 C205,20 255,80 305,50"
+          fill="transparent"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeDasharray="4,4"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={
+            isActive
+              ? { pathLength: 1, opacity: 0.7 }
+              : { pathLength: 0, opacity: 0 }
+          }
+          transition={{ duration: 0.6, ease: "easeInOut" }}
+          style={{ strokeDashoffset: 0 }}
+        />
+      </motion.svg>
+    </MotionBox>
+  )
 );
 
-// --- Sketch Button Wrapper --- (Handles hover, animations, shadow, composition)
-const SketchButton = ({
-  children,
-  primary = false,
-  onClick = () => {},
-  disabled = false,
-  isLoading = false,
-  size = "md", // Allows 'sm' or 'md'
-  type = "button",
-  iconSpacing = 2,
-  ariaLabel, // Explicitly pass aria-label for accessibility
-  ...rest // Pass down other props like aria-label
-}) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  // Define all variants outside of render to prevent recreation
-  // Commented out underline as it might not fit small nav buttons
-  const underlineVariants = {
-    rest: { width: 0 },
-    hover: { width: "90%", transition: { duration: 0.3 } },
-  };
-
-  // Shadow Variants - Placed here for encapsulation
-  const shadowVariants = {
-    rest: {
-      x: 3,
-      y: 3,
-      opacity: 0.8,
-      transition: { duration: 0.3, ease: "easeOut" },
-    },
-    hover: {
-      x: 5,
-      y: 5,
-      opacity: 1,
-      transition: { duration: 0.2, ease: "easeIn" },
-    }, // Consistent hover shadow offset
-  };
-
-  // Corner Doodle Variants - Placed here
-  const cornerVariants = {
-    rest: { scale: 0, opacity: 0 },
-    hover: { scale: 1, opacity: 0.8 },
-  };
-
-  const isDisabled = disabled || isLoading;
-
-  // Adjust styles based on size prop
-  let buttonStyles;
-  if (size === "sm") {
-    buttonStyles = { fontSize: "xs", px: 2, py: 1, minH: 7 }; // smaller button size
-  } else {
-    buttonStyles = { fontSize: "sm", px: 3, py: 1.5, minH: 9 }; // default ('md') button size
-  }
-
-  return (
-    <MotionDiv
-      style={{ position: "relative", width: "auto", display: "inline-block" }} // Allow sizing to content
-      onHoverStart={() => !isDisabled && setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      whileHover={!isDisabled ? "hover" : "rest"}
-      whileTap={!isDisabled ? { scale: 0.98 } : {}}
-      initial="rest"
-      animate={isHovered && !isDisabled ? "hover" : "rest"} // Control animation state
-      role="button"
-      tabIndex={isDisabled ? -1 : 0}
-      aria-disabled={isDisabled}
-      aria-label={ariaLabel} // Apply accessibility label
-      onKeyDown={(e) => {
-        if (!isDisabled && (e.key === "Enter" || e.key === " ")) onClick();
-      }} // Basic keyboard activation
+// --- SketchButtonInternal --- (Needed by SketchButton)
+const SketchButtonInternal = React.memo(
+  ({ children, primary = false, animate, ...rest }) => (
+    <Box
+      as="button"
+      width="100%"
+      height="auto"
+      minH="10"
+      position="relative"
+      bg={primary ? THEME.colors.accent : "rgba(40,40,40,0.85)"}
+      color={primary ? THEME.colors.black : THEME.colors.text}
+      border="1px solid #000"
+      borderRadius="1px"
+      fontWeight={primary ? "bold" : "medium"}
+      zIndex={2}
+      transition="transform 0.1s, background 0.15s"
+      _hover={{ textDecoration: "none" }}
+      _focusVisible={{
+        outline: `2px solid ${THEME.colors.accent}`,
+        outlineOffset: "2px",
+      }}
+      _disabled={{
+        opacity: 0.5,
+        cursor: "not-allowed",
+        filter: "grayscale(80%)",
+      }}
+      fontFamily={THEME.fonts.heading}
+      fontSize="sm"
+      textTransform="uppercase"
+      letterSpacing="wider"
+      px={4}
+      py={2}
+      whiteSpace="nowrap"
+      overflow="hidden"
+      textOverflow="ellipsis"
+      {...rest}
     >
-      {/* Order matters for z-index appearance */}
-
-      {/* 1. Thick Black Shadow (Bottom Layer) */}
-      {!isDisabled && (
-        <MotionDiv
-          variants={shadowVariants} // Use defined variants
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: themeColors.shadow, // Pure black
-            zIndex: -1, // Behind everything else
-            borderRadius: "none", // Square
-          }}
-          transition={{ duration: 0.2 }} // Smooth shadow transition independent of hover state change
-        />
-      )}
-
-      {/* 2. Scribble Effect (Can be above shadow, below button) */}
-      <ScribbleEffect
-        isActive={isHovered && !isDisabled}
-        color={primary ? themeColors.black : themeColors.yellow}
+      {children}
+      <MotionBox
+        variants={{
+          rest: { width: 0 },
+          hover: { width: "90%", transition: { duration: 0.3 } },
+        }}
+        style={{
+          position: "absolute",
+          bottom: "4px",
+          left: "5%",
+          height: "2px",
+          background: primary ? "black" : THEME.colors.accent,
+          zIndex: 3,
+        }}
+        animate={animate}
       />
+    </Box>
+  )
+);
 
-      {/* 3. Corner Doodles (Appear on top during hover) */}
-      {!isDisabled &&
-        ["topLeft", "topRight", "bottomLeft", "bottomRight"].map((pos, idx) => (
-          <MotionDiv
-            key={pos}
-            initial="rest" // Explicit initial state needed if parent animates
-            variants={cornerVariants} // Use defined variants
-            transition={{
-              // Custom transition per corner
-              duration: 0.2,
-              delay: idx * 0.04, // Stagger appearance
-              type: "spring",
-              stiffness: 450,
-              damping: 15, // Springy effect
-            }}
-            style={{
-              position: "absolute",
-              width: "8px",
-              height: "8px",
-              border: `2px solid ${themeColors.yellow}`, // Accent color
-              zIndex: 5, // Ensure they are visible
-              borderRadius: "none", // SQUARE
-              // Specific border sides for corner effect
-              ...(pos === "topLeft"
-                ? { top: -4, left: -4, borderWidth: "2px 0 0 2px" }
-                : pos === "topRight"
-                ? { top: -4, right: -4, borderWidth: "2px 2px 0 0" }
-                : pos === "bottomLeft"
-                ? { bottom: -4, left: -4, borderWidth: "0 0 2px 2px" }
-                : { bottom: -4, right: -4, borderWidth: "0 2px 2px 0" }),
-            }}
-            aria-hidden="true"
-          />
-        ))}
+// --- Sketch Button ---
+const SketchButton = React.memo(
+  ({
+    children,
+    primary = false,
+    onClick = () => {},
+    disabled = false,
+    isLoading = false,
+    size = "md",
+    type = "button",
+    iconSpacing = 2,
+    ariaLabel,
+    ...rest
+  }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const isDisabled = disabled || isLoading;
+    const btnStyles =
+      size === "sm"
+        ? { fontSize: "xs", px: 1.5, py: 1.5, minH: 10, minW: 10 }
+        : { fontSize: "sm", px: 3, py: 1.5, minH: 9 };
+    const hoverScale = 1.1;
+    const tapScale = 0.9;
 
-      {/* 4. Actual Button Content using Box directly */}
-      <Box
-        as="button"
-        display="inline-flex" // Use inline-flex for centering content
-        alignItems="center"
-        justifyContent="center"
+    return (
+      <MotionBox
         position="relative"
-        bg={primary ? themeColors.yellow : "rgba(40,40,40,0.8)"} // Use theme color
-        color={primary ? themeColors.black : themeColors.text} // Contrast text color
-        border="1px solid #000" // Keep black border for contrast against shadow
-        borderRadius="none" // SQUARE
-        fontWeight={primary ? "bold" : "medium"}
-        zIndex={2} // Above shadow
-        transition="transform 0.2s, background 0.2s"
-        _hover={{ textDecoration: "none" }}
-        _focusVisible={{
-          outline: `2px solid ${themeColors.yellow}`,
-          outlineOffset: "2px",
+        width="auto"
+        display="inline-block"
+        role="button"
+        tabIndex={isDisabled ? -1 : 0}
+        aria-disabled={isDisabled}
+        aria-label={ariaLabel}
+        onKeyDown={(e) => {
+          !isDisabled && (e.key === "Enter" || e.key === " ") && onClick();
         }}
-        _disabled={{
-          opacity: 0.5,
-          cursor: "not-allowed",
-          filter: "grayscale(80%)",
-        }}
-        fontFamily={sketchyFontStyle.fontFamily}
-        {...buttonStyles} // Apply dynamic size styles
-        isDisabled={isDisabled} // Use Chakra's disabled prop handling
-        onClick={onClick}
-        type={type}
-        {...rest} // Spread remaining props
+        onHoverStart={() => !isDisabled && setIsHovered(true)}
+        onHoverEnd={() => setIsHovered(false)}
+        whileTap={!isDisabled ? { scale: tapScale, y: 3 } : {}}
+        initial={false}
+        animate={{
+          scale: isHovered && !isDisabled ? hoverScale : 1,
+          x:
+            isHovered && !isDisabled
+              ? SHADOW_OFFSET_X / 1.2
+              : SHADOW_OFFSET_X / 2.5,
+          y:
+            isHovered && !isDisabled
+              ? SHADOW_OFFSET_Y / 1.2
+              : SHADOW_OFFSET_Y / 2.5,
+        }} // Enhanced offset linking
+        transition={{ type: "spring", stiffness: 400, damping: 10 }}
       >
-        {isLoading ? (
-          <Spinner
-            size="xs"
-            speed="0.8s"
-            color={primary ? themeColors.black : themeColors.yellow}
-          />
-        ) : (
-          children // Render children directly (Icon etc.)
-        )}
-      </Box>
-
-      {/* 5. Underline Animation Placeholder (commented out) */}
-      {/*
-             <MotionDiv
-                 variants={underlineVariants}
-                 style={{ position: "absolute", bottom: "4px", left: "5%", height: "2px", background: primary ? themeColors.black : themeColors.yellow, zIndex: 3, }}
-                 aria-hidden="true"
+        {" "}
+        {/* Bouncier spring */}
+        {/* Shadow */}
+        <MotionBox
+          position="absolute"
+          inset={0}
+          bg={THEME.colors.shadow}
+          zIndex={-1}
+          borderRadius="none"
+          initial={false}
+          animate={{ opacity: isHovered && !isDisabled ? 1 : 0.85 }}
+          transition={{ duration: 0.15 }}
+        />
+        {/* Scribble */}
+        <ScribbleEffect
+          isActive={isHovered && !isDisabled}
+          color={primary ? THEME.colors.black : THEME.colors.accent}
+        />
+        {/* Doodles */}
+        {!isDisabled &&
+          ["topLeft", "topRight", "bottomLeft", "bottomRight"].map(
+            (pos, idx) => (
+              <MotionBox
+                key={pos}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={
+                  isHovered
+                    ? { scale: 1.1, opacity: 1 }
+                    : { scale: 0, opacity: 0 }
+                }
+                transition={{ duration: 0.2, delay: idx * 0.05 }}
+                style={{
+                  position: "absolute",
+                  width: "7px",
+                  height: "7px",
+                  border: `1.8px solid ${THEME.colors.accent}`,
+                  zIndex: 5,
+                  borderRadius: "none",
+                  ...(pos === "topLeft"
+                    ? { top: -4, left: -4, borderWidth: "1.8px 0 0 1.8px" }
+                    : pos === "topRight"
+                    ? { top: -4, right: -4, borderWidth: "1.8px 1.8px 0 0" }
+                    : pos === "bottomLeft"
+                    ? { bottom: -4, left: -4, borderWidth: "0 0 1.8px 1.8px" }
+                    : {
+                        bottom: -4,
+                        right: -4,
+                        borderWidth: "0 1.8px 1.8px 0",
+                      }),
+                }}
+                aria-hidden="true"
               />
-              */}
-    </MotionDiv>
-  );
-};
+            )
+          )}
+        {/* Button Content */}
+        <Box
+          as="button"
+          display="inline-flex"
+          alignItems="center"
+          justifyContent="center"
+          position="relative"
+          zIndex={2}
+          bg={primary ? THEME.colors.accent : "rgba(30,30,30,0.9)"}
+          color={primary ? THEME.colors.black : THEME.colors.text}
+          border="1.5px solid #000"
+          borderRadius="1px"
+          fontWeight="bold"
+          transition="background 0.2s"
+          _hover={{ textDecoration: "none" }}
+          _focusVisible={{
+            outline: `2px solid ${THEME.colors.accent}`,
+            outlineOffset: "3px",
+          }}
+          _disabled={{
+            opacity: 0.4,
+            cursor: "not-allowed",
+            filter: "grayscale(90%)",
+            pointerEvents: "none",
+          }}
+          fontFamily={THEME.fonts.heading}
+          {...btnStyles}
+          isDisabled={isDisabled}
+          onClick={onClick}
+          type={type}
+          {...rest}
+        >
+          {isLoading ? (
+            <Spinner
+              size="xs"
+              speed="0.8s"
+              color={primary ? THEME.colors.black : THEME.colors.accent}
+            />
+          ) : (
+            children
+          )}
+        </Box>
+      </MotionBox>
+    );
+  }
+);
 
 // --- Squiggly Line ---
 const SquigglyLine = React.memo(
   ({
-    color = themeColors.yellow, // Default to accent color
+    color = THEME.colors.accent,
     delay = 0,
-    thickness = 2, // Slightly thicker default
-    dasharray = "4,3", // Bolder dash default
+    thickness = 1.5,
+    dasharray = "3,2",
+    duration = 0.6,
   }) => (
     <MotionDiv
       initial={{ width: "0%" }}
       animate={{ width: "100%" }}
-      transition={{ duration: 0.35, delay }} // Slightly slower duration
-      style={{ position: "relative", lineHeight: "0" }} // Prevent extra space
+      transition={{ duration, delay, ease: "easeInOut" }}
+      style={{ position: "relative", lineHeight: "0" }}
       aria-hidden="true"
     >
       <svg
         width="100%"
-        height="4" // Viewbox height slightly more than thickness
-        viewBox="0 0 300 4" // Viewbox width allows path definition
+        height="4"
+        viewBox="0 0 300 4"
         preserveAspectRatio="none"
-        style={{ display: "block" }} // Prevents potential inline spacing issues
+        style={{ display: "block" }}
       >
-        {/* Wobbly path */}
         <motion.path
-          d="M0,2 C25,1 50,3 75,2 C100,1 125,3 150,2 C175,1 200,3 225,2 C250,1 275,3 300,2"
+          d="M0,2 Q20,3 40,2 T80,2 T120,2 T160,2 T200,2 T240,2 T280,2 300,2"
           fill="none"
           stroke={color}
           strokeWidth={thickness}
           strokeDasharray={dasharray}
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.8, delay: delay + 0.1, ease: "linear" }} // Slower path draw
+          initial={{ pathLength: 0, opacity: 0.5 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{
+            duration: duration * 2,
+            delay: delay + 0.2,
+            ease: "linear",
+          }}
         />
       </svg>
     </MotionDiv>
   )
 );
 
-// --- Section Heading Component ---
-// Simplified version without the "See More" link
-const SectionHeading = React.memo(
-  ({
-    children,
-    accentColor = themeColors.yellow, // Default from theme
-    headingFont = sketchyFontStyle.fontFamily, // Default from theme
-  }) => (
-    <Box mb={8} position="relative" display="inline-block">
+// --- Section Heading ---
+const SectionHeading = React.memo(({ children, align = "center" }) => (
+  <VStack align={align} mb={10} spacing={1}>
+    <MotionHeading
+      as="h2"
+      size={{ base: "md", md: "lg" }}
+      color={THEME.colors.text}
+      {...THEME.styles.heading}
+      textShadow="1px 1px 2px rgba(0,0,0,0.7)"
+      initial={{ opacity: 0, y: 10 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5 }}
+    >
       {" "}
-      {/* Display inline-block makes bottom border only fit text width */}
-      <Heading
-        as="h2"
-        size="lg" // Keep heading size prominent
-        color={themeColors.text} // Use main text color
-        fontFamily={headingFont}
-        textTransform="uppercase"
-        letterSpacing="wider" // Wider spacing for headings
-        textShadow="1px 1px 3px rgba(0,0,0,0.6)" // Defined shadow for depth
-      >
-        {children}
-      </Heading>
-      {/* Squiggly Line Underneath */}
-      <Box position="absolute" bottom="-12px" left="0" w="70px">
-        {" "}
-        {/* Adjust width/position as needed */}
-        <SquigglyLine color={accentColor} />
-      </Box>
+      {children}{" "}
+    </MotionHeading>
+    <Box w="80px" transform="rotate(180deg)">
+      <SquigglyLine
+        color={THEME.colors.accent}
+        thickness={1.5}
+        dasharray="2,2"
+        duration={0.5}
+      />
     </Box>
-  )
-);
+  </VStack>
+));
 
-// --- Skeleton Card (for Loading State) ---
-// Accepts width/height which are now responsive objects/arrays
-const SkeletonCard = ({ width, height }) => (
-  <Box w={width} h={height} position="relative" flexShrink={0}>
-    {/* Background Skeleton Box */}
-    <Skeleton
+// --- Vertical Poster Skeleton Card (With Pulsing) ---
+const PosterSkeletonCard = React.memo(({ cardWidth }) => (
+  <MotionBox
+    w={cardWidth}
+    aspectRatio={POSTER_ASPECT_RATIO}
+    position="relative"
+    flexShrink={0}
+    bg={THEME.colors.darkBg}
+    initial={{ opacity: 0.6 }}
+    animate={{ opacity: [0.6, 0.9, 0.6] }}
+    transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+  >
+    <Box
+      position="absolute"
+      inset={0}
+      bg={THEME.colors.shadow}
+      transform={`translate(${SHADOW_OFFSET_X}px, ${SHADOW_OFFSET_Y}px)`}
+      zIndex={0}
+      borderRadius="none"
+    />
+    <Box
       w="100%"
       h="100%"
       borderRadius="none"
-      startColor={themeColors.darkBg} // Darker skeleton
-      endColor={themeColors.border} // Even darker end color
-      speed={1.0} // Slower speed
+      border="1.5px solid"
+      borderColor={THEME.colors.border}
+      bg={THEME.colors.cardBg}
     />
-    {/* Optional: Darker inner area for depth */}
-    <Box
-      position="absolute"
-      inset="3px" // Slightly inset
-      background={themeColors.darkBg}
-      zIndex={1}
-      borderRadius="none"
-    />
-    {/* Shadow Placeholder (doesn't need animation) */}
-    <Box
-      position="absolute"
-      inset="0"
-      bg="rgba(0,0,0,0.5)" // Semi-transparent shadow placeholder
-      transform="translate(3px, 3px)" // Match resting shadow offset
-      zIndex={-1}
-      borderRadius="none"
-    />
-  </Box>
-);
+  </MotionBox>
+));
 
-// --- Recommendation Card ---
-// Accepts width/height which are now responsive objects/arrays
-const RecommendationCard = React.memo(
-  ({ item, itemType, cardWidth, cardHeight }) => {
+// --- Sketchy Vertical Poster Card (With Enhancements) ---
+const SketchyVerticalPosterCard = React.memo(
+  ({ item, itemType, cardWidth, index, genreMap = {} }) => {
     const [isHovered, setIsHovered] = useState(false);
-    const destinationType = item.media_type || itemType; // Use specific type if available (from multi searches), else fallback
+    const destinationType = item.media_type || itemType;
     const title = item.title || item.name || "Untitled";
-    // Prefer poster, fallback to backdrop ONLY if poster is missing
     const imagePath = item.poster_path || item.backdrop_path;
-    // Use w500 for poster, but original might be better for backdrops used as posters
     const imageBase = item.poster_path ? baseImageW500 : baseImageOriginal;
+    const releaseYear = (item.release_date || item.first_air_date)?.substring(
+      0,
+      4
+    );
+    const displayedGenres = useMemo(
+      () =>
+        (item.genre_ids || [])
+          .map((id) => genreMap[id])
+          .filter(Boolean)
+          .slice(0, 2),
+      [item.genre_ids, genreMap]
+    );
 
-    // Shadow animation variants for the card itself (moves card and shadow together)
-    const cardShadowVariants = {
+    const cardEntryVariant = {
+      hidden: { opacity: 0, y: 40 },
+      visible: (i) => ({
+        opacity: 1,
+        y: 0,
+        transition: {
+          duration: 0.5,
+          delay: i * 0.07,
+          ease: [0.2, 0.8, 0.5, 1],
+        },
+      }),
+    };
+    const cardContentVariants = {
       rest: {
-        x: 4, // Resting shadow offset X
-        y: 4, // Resting shadow offset Y
-        opacity: 0.8, // Shadow opacity
-        scale: 1, // Card scale
-        transition: { duration: 0.3, ease: "easeOut" },
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotateX: 0,
+        rotateY: 0,
+        boxShadow: `0px 0px 0px ${THEME.colors.accent}00`,
+        transition: { type: "spring", stiffness: 300, damping: 25 },
       },
       hover: {
-        x: 7, // Hover shadow offset X (more pronounced)
-        y: 7, // Hover shadow offset Y
-        opacity: 1, // Shadow full opacity
-        scale: 1.03, // Card scales up slightly
-        transition: { duration: 0.2, ease: "easeIn" },
+        x: -SHADOW_OFFSET_X * 0.75,
+        y: -SHADOW_OFFSET_Y * 0.75,
+        scale: 1.05,
+        /* Reduced scale slightly */ rotateX: 2,
+        rotateY: 6,
+        /* Enhanced Tilt */ boxShadow: `0px 0px 18px 4px ${THEME.colors.accent}55`,
+        /* Enhanced Glow */ transition: {
+          type: "spring",
+          stiffness: 300,
+          damping: 15,
+        },
+      },
+    };
+    const slideInPanelVariants = {
+      hidden: { y: "100%", opacity: 0.5 },
+      visible: {
+        y: "0%",
+        opacity: 1,
+        transition: { duration: 0.35, ease: [0.2, 0.8, 0.4, 1] },
+      }, // Smoother ease
+      exit: {
+        y: "100%",
+        opacity: 0.5,
+        transition: { duration: 0.3, ease: "easeIn" },
       },
     };
 
+    if (!imagePath) return null;
+
     return (
-      // Outer container handles hover state, link, and applies the main animation variant
       <MotionBox
-        as={RouterLink} // Use RouterLink for SPA navigation
-        to={`/${destinationType}/${item.id}`}
         position="relative"
-        // Apply responsive dimensions received from parent
         w={cardWidth}
-        h={cardHeight} // Ensure square aspect ratio is maintained via props
-        flexShrink={0} // Prevent squashing in the Flex container
-        title={title} // Tooltip for accessibility/full title
+        aspectRatio={POSTER_ASPECT_RATIO}
+        variants={cardEntryVariant}
+        initial="hidden"
+        animate="visible" // Use animate instead of whileInView for initial load
+        whileHover="hover"
+        /* Trigger variant on hover */ custom={index}
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
-        initial="rest"
-        animate={isHovered ? "hover" : "rest"}
-        variants={cardShadowVariants} // Apply the combined scale/shadow animation here
-        style={{ textDecoration: "none", display: "block" }} // Link styling resets
       >
-        {/* 1. The Thick Black Square Shadow (Animated via parent MotionBox) */}
-        {/* This div exists solely to BE the shadow */}
-        <MotionDiv
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: themeColors.shadow, // PURE BLACK
-            zIndex: 1, // Behind main content
-            borderRadius: "none", // SQUARE
-          }}
-          // This div *inherits* the transform (x, y, scale) and opacity from the parent MotionBox via variants
+        {/* 1. Thick Static Shadow */}
+        <Box
+          position="absolute"
+          inset={0}
+          bg={THEME.colors.shadow}
+          zIndex={0}
+          borderRadius="none"
+          transform={`translate(${SHADOW_OFFSET_X}px, ${SHADOW_OFFSET_Y}px)`}
+          filter="blur(1px)" /* Slightly blurred shadow */
         />
-        {/* 2. Main Content Box (Poster, Info Overlay) */}
+        {/* 2. Content Box (With Hover Animations & Perspective) */}
         <MotionBox
-          position="absolute" // Positioned relative to the outer MotionBox
-          top={0}
-          left={0}
+          position="relative"
+          zIndex={1}
           w="100%"
           h="100%"
-          border="2px solid" // Slightly thicker border for sketch style
-          borderColor={isHovered ? themeColors.borderHover : themeColors.border} // Yellow border on hover
-          borderRadius="none" // SQUARE
-          overflow="hidden" // Clip image and overlay
-          bg={themeColors.darkBg} // Background for placeholder state
-          zIndex={2} // Above shadow
-          transition="border-color 0.2s ease-in-out" // Animate border color change only
+          bg={THEME.colors.cardBg}
+          border="1.5px solid"
+          borderColor={
+            isHovered ? THEME.colors.borderAccent : THEME.colors.border
+          }
+          borderRadius="none"
+          overflow="hidden"
+          transition="border-color 0.15s"
+          cursor="pointer"
+          variants={cardContentVariants}
+          initial="rest" /* Initial state is 'rest' */
+          sx={{
+            maskImage: roughEdgesMaskCss,
+            WebkitMaskImage: roughEdgesMaskCss,
+            maskSize: "cover",
+            WebkitMaskSize: "cover",
+            perspective: "900px" /* Slightly increased perspective */,
+          }}
         >
-          {/* Image or Placeholder */}
-          {imagePath ? (
-            <MotionImage
-              src={`${imageBase}${imagePath}`}
-              alt={`Poster for ${title}`}
-              w="100%"
-              h="100%"
-              objectFit="cover" // Cover the square area perfectly
-              initial={{ opacity: 0 }} // Fade in image on load
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              // Optional: Slightly desaturate/darken non-hovered posters for focus effect
-              filter={isHovered ? "none" : "saturate(0.8) brightness(0.95)"}
-            />
-          ) : (
-            // Placeholder shown if no image available
-            <Flex
-              w="100%"
-              h="100%"
-              align="center"
-              justify="center"
-              direction="column"
-              p={2}
-            >
-              <Icon
-                as={FaFilm}
-                boxSize="30px"
-                color={themeColors.subtleText}
-                mb={2}
-              />
-              <Text
-                color={themeColors.subtleText}
-                fontSize="xs"
-                textAlign="center"
-                noOfLines={3}
-                {...sketchyFontStyle}
-                letterSpacing="normal"
-              >
-                {title}
-              </Text>
-            </Flex>
-          )}
-
-          {/* Hover Overlay with Info - Appears on hover */}
+          {/* Base Image with hover filter */}
+          <MotionImage
+            src={`${imageBase}${imagePath}`}
+            alt={`${title} Poster`}
+            w="100%"
+            h="100%"
+            objectFit="cover"
+            initial={false}
+            animate={{
+              filter: isHovered
+                ? "brightness(1.15) saturate(1.1)"
+                : "brightness(0.9) saturate(0.9)",
+            }}
+            transition={{ duration: 0.3 }}
+          />
+          {/* SLIDE-IN INFO PANEL */}
           <AnimatePresence>
             {isHovered && (
               <MotionFlex
                 position="absolute"
-                bottom="0"
-                left="0"
-                right="0"
-                bgGradient={`linear(to-t, ${themeColors.gradientStart}, ${themeColors.gradientEnd})`} // Gradient overlay for text readability
-                p={3} // Padding for content within overlay
-                direction="column" // Stack text vertically
-                initial={{ opacity: 0, y: 10 }} // Animation: fade and slide up
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }} // Animation: fade and slide down
-                transition={{ duration: 0.25 }}
-                zIndex={3} // Above image
-                pointerEvents="none" // Allow hover events to pass through to card image if needed
+                bottom={0}
+                left={0}
+                right={0}
+                h="60%"
+                /* Increased height */ bgGradient={`linear(to-t, ${THEME.colors.gradientStart} 35%, ${THEME.colors.gradientMid} 85%, ${THEME.colors.gradientEnd} 100%)`}
+                p={{ base: 3, md: 4 }}
+                direction="column"
+                justifyContent="flex-end"
+                alignItems="flex-start"
+                variants={slideInPanelVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                zIndex={3}
+                pointerEvents="none"
               >
-                {/* Title */}
-                <Text
-                  color={themeColors.text}
-                  fontSize="sm"
-                  fontWeight="bold"
-                  noOfLines={2} // Allow title to wrap once
-                  lineHeight="short"
-                  {...sketchyFontStyle} // Apply sketchy font style to title
-                >
-                  {title}
-                </Text>
-                {/* Meta Info (Year, Rating) */}
-                <HStack spacing={3} mt={1.5} align="center">
-                  {item.release_date && ( // Show Year if available
-                    <Flex
-                      align="center"
-                      title={`Released: ${item.release_date}`}
-                    >
-                      <Icon
-                        as={FaCalendarAlt}
-                        color={themeColors.yellow}
-                        boxSize="10px"
-                        mr={1}
-                      />
+                <VStack align="flex-start" spacing={1.5} w="full">
+                  <Text
+                    color={THEME.colors.text}
+                    fontSize={{ base: "sm", md: "md" }}
+                    fontWeight="bold"
+                    noOfLines={2}
+                    lineHeight="tight"
+                    {...THEME.styles.heading}
+                    letterSpacing="normal"
+                    /* Normal for better reading */ textShadow="1px 1px 2px rgba(0,0,0,1)"
+                  >
+                    {" "}
+                    {title}{" "}
+                  </Text>{" "}
+                  {/* Stronger text shadow */}
+                  <HStack spacing={3} pt="1px">
+                    {releaseYear && (
+                      <Flex align="center" title={releaseYear}>
+                        <Icon
+                          as={FaCalendarAlt}
+                          color={THEME.colors.accent}
+                          boxSize="11px"
+                          mr={1}
+                        />{" "}
+                        <Text
+                          fontSize="xs"
+                          color={THEME.colors.subtleText}
+                          textShadow="1px 1px 1px rgba(0,0,0,0.8)"
+                        >
+                          {" "}
+                          {releaseYear}
+                        </Text>
+                      </Flex>
+                    )}
+                    {item.vote_average > 0 && (
+                      <Flex align="center" title={item.vote_average.toFixed(1)}>
+                        <Icon
+                          as={FaStar}
+                          color={THEME.colors.accent}
+                          boxSize="11px"
+                          mr={1}
+                        />{" "}
+                        <Text
+                          fontSize="xs"
+                          color={THEME.colors.subtleText}
+                          textShadow="1px 1px 1px rgba(0,0,0,0.8)"
+                        >
+                          {item.vote_average.toFixed(1)}
+                        </Text>
+                      </Flex>
+                    )}
+                  </HStack>
+                  {/* Genres */}
+                  <Flex
+                    flexWrap="wrap"
+                    gap={1.5}
+                    mt={2.5}
+                    /* More space */ maxW="95%"
+                  >
+                    {displayedGenres.map((genreName) => (
                       <Text
-                        fontSize="xs"
-                        color={themeColors.subtleText}
-                        fontWeight="medium"
+                        key={genreName}
+                        bg={`${THEME.colors.darkBg}B3`}
+                        /* Semi-transparent BG */ px={1.5}
+                        py={0.5}
+                        border={`1px solid ${THEME.colors.borderSubtle}`}
+                        fontSize="10px"
+                        color={THEME.colors.subtleText}
+                        {...THEME.styles.body}
+                        letterSpacing="tighter"
+                        textShadow="1px 1px 1px rgba(0,0,0,0.7)"
                       >
-                        {item.release_date.substring(0, 4)}{" "}
-                        {/* Display Year Only */}
+                        {" "}
+                        {genreName}{" "}
                       </Text>
-                    </Flex>
-                  )}
-                  {item.vote_average > 0 && ( // Show Rating if available and non-zero
-                    <Flex
-                      align="center"
-                      title={`Rating: ${item.vote_average.toFixed(1)} / 10`}
-                    >
-                      <Icon
-                        as={FaStar}
-                        color={themeColors.yellow}
-                        boxSize="10px"
-                        mr={1}
-                      />
-                      <Text
-                        fontSize="xs"
-                        color={themeColors.subtleText}
-                        fontWeight="medium"
-                      >
-                        {item.vote_average.toFixed(1)}{" "}
-                        {/* Display rating to 1 decimal place */}
-                      </Text>
-                    </Flex>
-                  )}
-                </HStack>
+                    ))}
+                  </Flex>
+                </VStack>
               </MotionFlex>
             )}
           </AnimatePresence>
-
-          {/* Yellow Accent Scribble on Hover */}
-          {/* Positioned inside the main content box */}
-          <ScribbleEffect isActive={isHovered} color={themeColors.yellow} />
-        </MotionBox>{" "}
-        {/* End Main Content Box */}
-      </MotionBox> // End Outer Link/Animation Box
+          {/* Inner Frame / Vignette */}
+          <Box
+            position="absolute"
+            inset="0"
+            boxShadow={`inset 0 0 15px 5px ${THEME.colors.black}55, inset 0 0 5px 2px ${THEME.colors.black}33`}
+            /* Inner shadow vignette */ pointerEvents="none"
+            zIndex={4}
+          />
+        </MotionBox>
+        <Box
+          as={RouterLink}
+          to={`/${itemType}/${item.id}`}
+          position="absolute"
+          inset="0"
+          zIndex="5"
+          aria-hidden="true"
+        />
+      </MotionBox>
     );
   }
 );
 
 // ========================================================================
-// === RecommendationsSection Component (Main Logic) ===
+// === RecommendationsSection Component (Horizontal Slider Implementation) ===
 // ========================================================================
 
-function RecommendationsSection({ itemId, itemType, themeProps = {} }) {
-  // State for recommendations data and loading status
+function RecommendationsSection({ itemId, itemType }) {
   const [recommendations, setRecommendations] = useState([]);
   const [loadingRecs, setLoadingRecs] = useState(true);
+  const scrollRef = useRef(null);
+  const [showPrev, setShowPrev] = useState(false);
+  const [showNext, setShowNext] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(4); // Start with an estimate
 
-  // State and Ref for horizontal scrolling
-  const [scrollPos, setScrollPos] = useState(0); // Track scroll position if needed elsewhere
-  const [showPrev, setShowPrev] = useState(false); // Visibility of previous button
-  const [showNext, setShowNext] = useState(false); // Visibility of next button
-  const scrollRef = useRef(null); // Ref for the scrollable container
+  // Responsive Card Width
+  const cardWidth = useMemo(
+    () => ({
+      base: "150px",
+      sm: "170px",
+      md: "190px",
+      lg: "210px",
+      xl: "230px",
+    }),
+    []
+  ); // Use memo
 
-  // Extract theme props passed from parent or use defaults defined above
-  const {
-    accentColor = themeColors.yellow,
-    headingFont = sketchyFontStyle.fontFamily,
-    mutedTextColor = themeColors.subtleText,
-  } = themeProps;
-
-  // --- Define Responsive Card Size directly using Chakra's object syntax ---
-  // This determines the dimensions of each recommendation card at different breakpoints
-  const cardSize = { base: "140px", sm: "160px", md: "170px", lg: "180px" };
-
-  // --- Data Fetching ---
-  useEffect(() => {
-    let isMounted = true; // Flag to prevent state updates on unmounted component
+  // Data Fetching (Simplified callback structure)
+  const fetchRecsData = useCallback(async () => {
     setLoadingRecs(true);
-    setShowPrev(false); // Reset button visibility on new data load
+    setShowPrev(false);
     setShowNext(false);
-
-    fetchRecommendations(itemType, itemId)
-      .then((data) => {
-        if (isMounted) {
-          // Filter recommendations to include only those with *some* image (poster or backdrop)
-          const validRecs =
-            data?.filter((rec) => rec.poster_path || rec.backdrop_path) || [];
-          setRecommendations(validRecs.slice(0, 16)); // Limit the number of recommendations shown
-          // Use a timeout to check scroll button visibility *after* the DOM might have updated with new items
-          // This helps ensure calculations based on scrollWidth/clientWidth are accurate.
-          setTimeout(updateScrollButtons, 100); // Delay ms might need tuning based on render speed
-        }
-      })
-      .catch((err) => {
-        if (isMounted) {
-          console.error("Failed to fetch recommendations:", err);
-          setRecommendations([]); // Clear recommendations on error
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setLoadingRecs(false); // Set loading to false when fetch completes (success or error)
-        }
-      });
-
-    // Cleanup function to run when the component unmounts or dependencies change
-    return () => {
-      isMounted = false; // Set flag false so pending async operations don't update state
-    };
-  }, [itemId, itemType]); // Re-run effect if the itemId or itemType changes
-
-  // --- Scroll Handling Functions ---
-
-  // Function to scroll the container horizontally
-  const handleScroll = (direction) => {
-    if (scrollRef.current) {
-      const container = scrollRef.current;
-      // Calculate scroll amount: scroll by a percentage (e.g., 80%) of the visible width for a substantial jump
-      const scrollAmount = container.clientWidth * 0.8;
-
-      container.scrollBy({
-        left: direction === "next" ? scrollAmount : -scrollAmount, // Positive for next, negative for prev
-        behavior: "smooth", // Enable smooth scrolling animation
-      });
-
-      // Since smooth scrolling takes time, update button visibility slightly after scroll initiates
-      setTimeout(updateScrollButtons, 300); // Delay allows scroll animation to progress before check
+    try {
+      const data = await fetchRecommendations(itemType, itemId);
+      const validRecs = data?.filter((rec) => rec.poster_path) || [];
+      setRecommendations(validRecs.slice(0, 16));
+    } catch (err) {
+      console.error("Rec Fetch Error:", err);
+      setRecommendations([]);
+    } finally {
+      setLoadingRecs(false);
     }
-  };
+  }, [itemId, itemType]);
+  useEffect(() => {
+    fetchRecsData();
+  }, [fetchRecsData]);
 
-  // Function to check scroll position and update button visibility
-  // Uses useCallback to memoize the function, preventing unnecessary re-creation if dependencies don't change
-  const updateScrollButtons = useCallback(() => {
-    if (scrollRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-
-      // Add a small tolerance (e.g., 5 pixels) for floating point inaccuracies in scroll calculations
-      const tolerance = 5;
-      const isAtStart = scrollLeft < tolerance;
-      const isAtEnd = scrollLeft >= scrollWidth - clientWidth - tolerance;
-      // Check if the content width is actually larger than the visible container width (i.e., is scrolling possible?)
-      const canScroll = scrollWidth > clientWidth + tolerance;
-
-      setShowPrev(!isAtStart && canScroll); // Show "Prev" if not at start AND content is scrollable
-      setShowNext(!isAtEnd && canScroll); // Show "Next" if not at end AND content is scrollable
-
-      setScrollPos(scrollLeft); // Store current scroll position (optional)
+  // Scroll State Logic (Using Debounced Callback)
+  const updateScrollState = useCallback(() => {
+    if (!scrollRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+    const tolerance = 15;
+    const canScroll = scrollWidth > clientWidth + tolerance;
+    setShowPrev(canScroll && scrollLeft > tolerance);
+    setShowNext(
+      canScroll && scrollLeft < scrollWidth - clientWidth - tolerance
+    );
+    if (canScroll) {
+      const avgCardWidth = 210;
+      const calculatedItemsPerPage = Math.max(
+        1,
+        Math.floor(clientWidth / (avgCardWidth + 20))
+      );
+      setItemsPerPage(calculatedItemsPerPage);
+      const totalPages = Math.ceil(
+        recommendations.length / calculatedItemsPerPage
+      );
+      const calculatedCurrentPage = Math.round(
+        (scrollLeft / (scrollWidth - clientWidth)) * (totalPages - 1)
+      );
+      setCurrentPage(
+        Math.min(Math.max(0, calculatedCurrentPage), totalPages - 1)
+      );
     } else {
-      // If ref is not available (e.g., initial render before ref assignment), hide buttons
-      setShowPrev(false);
-      setShowNext(false);
+      setCurrentPage(0);
     }
-  }, []); // Dependency array is empty as it only relies on the ref.current's properties
-
-  // --- Effect for Attaching Scroll and Resize Listeners ---
+  }, [recommendations.length]);
+  const debouncedUpdateScrollState = useCallback(() => {
+    let timeoutId;
+    return () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(updateScrollState, 150);
+    };
+  }, [updateScrollState])();
   useEffect(() => {
     const container = scrollRef.current;
-    if (container) {
-      // Attach scroll event listener
-      container.addEventListener("scroll", updateScrollButtons, {
-        passive: true,
-      }); // Use passive for performance
+    if (!container || loadingRecs) return;
+    container.addEventListener("scroll", debouncedUpdateScrollState, {
+      passive: true,
+    });
+    const observer = new ResizeObserver(debouncedUpdateScrollState);
+    observer.observe(container);
+    setTimeout(debouncedUpdateScrollState, 150);
+    /* Initial check slightly delayed */ return () => {
+      container.removeEventListener("scroll", debouncedUpdateScrollState);
+      observer.disconnect();
+    };
+  }, [loadingRecs, recommendations.length, debouncedUpdateScrollState]);
 
-      // Attach ResizeObserver to update buttons if container size changes (e.g., window resize)
-      const resizeObserver = new ResizeObserver(updateScrollButtons);
-      resizeObserver.observe(container);
+  // Scroll Action
+  const handleScroll = useCallback(
+    (direction) => {
+      if (!scrollRef.current) return;
+      const { clientWidth } = scrollRef.current;
+      const scrollAmount = clientWidth * 0.7;
+      scrollRef.current.scrollBy({
+        left: direction === "next" ? scrollAmount : -scrollAmount,
+        behavior: "smooth",
+      });
+      setTimeout(updateScrollState, 400);
+    },
+    [updateScrollState]
+  );
 
-      // Initial check in case content loads and fits perfectly, or doesn't require scrolling initially
-      updateScrollButtons();
+  const totalPages = useMemo(
+    () =>
+      itemsPerPage > 0 ? Math.ceil(recommendations.length / itemsPerPage) : 0,
+    [recommendations.length, itemsPerPage]
+  );
 
-      // Cleanup function: remove listeners when component unmounts or dependencies change
-      return () => {
-        container.removeEventListener("scroll", updateScrollButtons);
-        resizeObserver.unobserve(container);
-      };
-    }
-  }, [loadingRecs, recommendations.length, updateScrollButtons]); // Re-run when loading finishes, items change (affecting scrollWidth), or callback updates
+  // Section Animation
+  const sectionEntryVariant = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.8 } },
+  };
 
-  // --- Render Logic ---
-  return (
-    <Box w="100%" position="relative" mb={12}>
-      {" "}
-      {/* Outer container for the whole section */}
-      {/* Section Title */}
-      <SectionHeading accentColor={accentColor} headingFont={headingFont}>
-        You Might Also Like
-      </SectionHeading>
-      {/* Container for Scrollable Content + Absolute Buttons */}
-      <Box
+  // --- Render ---
+  if (loadingRecs || recommendations.length > 0) {
+    return (
+      <Container
+        maxW="container.xl"
+        py={{ base: 10, md: 16 }}
+        mt={8}
         position="relative"
-        // Add horizontal padding ONLY on medium screens and up to make space for the absolute positioned buttons outside the scroll area
-        px={{ base: "0", md: "45px" }}
       >
-        {/* The actual scrollable container */}
-        <Flex
-          ref={scrollRef}
-          overflowX="auto" // Enable horizontal scrolling
-          overflowY="hidden" // Hide vertical scrollbar just in case
-          py={4} // Add some padding top/bottom so card shadows aren't clipped
-          // --- Custom Scrollbar Styling (Optional, works in WebKit/Firefox) ---
-          css={{
-            "&::-webkit-scrollbar": {
-              height: "8px", // Set height of the scrollbar
-            },
-            "&::-webkit-scrollbar-track": {
-              background: "transparent", // Hide the track itself
-              // Optionally add margin to push scrollbar away from content:
-              marginTop: "40px", // Push track down relative to Flex py
-              marginBottom: "40px",
-            },
-            "&::-webkit-scrollbar-thumb": {
-              background: themeColors.border, // Use theme border color for thumb
-              borderRadius: "none", // Square thumb to match theme
-              "&:hover": {
-                background: themeColors.subtleText, // Lighter thumb on hover
-              },
-            },
-            // Firefox standard scrollbar styling
-            scrollbarWidth: "thin", // Use thin scrollbar style
-            scrollbarColor: `${themeColors.border} transparent`, // thumb color, track color
-          }}
+        {/* Optional: Projector/Flicker Effects */}
+        <MotionBox
+          position="absolute"
+          top="-80px"
+          left="50%"
+          transform="translateX(-50%)"
+          width="70%"
+          height="250px"
+          zIndex={-1}
+          overflow="hidden"
+          opacity={0.6}
+          aria-hidden="true"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.6 }}
+          transition={{ delay: 0.7, duration: 1 }}
         >
-          {/* STATE 1: Loading Skeletons */}
-          {loadingRecs && (
-            <HStack spacing={4} px={1} alignItems="stretch">
-              {" "}
-              {/* Align items to stretch ensures skeletons take full height */}
-              {/* Render 6 skeleton cards as placeholders */}
-              {Array.from({ length: 6 }).map((_, index) => (
-                <SkeletonCard
-                  key={`skel-${index}`}
-                  width={cardSize}
-                  height={cardSize}
-                /> // Pass responsive size object
-              ))}
-            </HStack>
-          )}
+          {" "}
+          <Box
+            width="150%"
+            height="150%"
+            position="absolute"
+            left="-25%"
+            top="-25%"
+            bgGradient={`radial(ellipse at 50% -40%, ${THEME.colors.projectorBeam} 5%, transparent 55%)`}
+            style={{ transform: "perspective(250px) rotateX(20deg)" }}
+          />{" "}
+        </MotionBox>
+        <MotionBox
+          position="absolute"
+          inset={0}
+          zIndex={-2}
+          bg={THEME.colors.black}
+          pointerEvents="none"
+          initial={{ opacity: THEME.effects.flickerOpacityMax }}
+          animate={{
+            opacity: [
+              THEME.effects.flickerOpacityMax,
+              THEME.effects.flickerOpacityMin,
+              THEME.effects.flickerOpacityMax,
+            ],
+          }}
+          transition={{
+            duration: 0.12,
+            repeat: Infinity,
+            repeatType: "loop",
+            ease: "linear",
+          }}
+          aria-hidden="true"
+        />
 
-          {/* STATE 2: Display Recommendation Cards */}
-          {!loadingRecs && recommendations.length > 0 && (
-            // Use HStack for horizontal layout with spacing
-            // MinHeight ensures the row doesn't collapse vertically if card size changes responsively before content loads fully
+        <SectionHeading align="center">You Might Also Like</SectionHeading>
+
+        <MotionBox
+          position="relative"
+          px={{ base: "0", md: "60px" }}
+          variants={sectionEntryVariant}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.1 }}
+        >
+          {/* Scrollable Content */}
+          <Flex
+            ref={scrollRef}
+            overflowX="auto"
+            overflowY="hidden"
+            pb={8 + SHADOW_OFFSET_Y / 4}
+            pt={4}
+            css={{
+              /* Scrollbar styles */ scrollbarWidth: "none",
+              "&::-webkit-scrollbar": { display: "none" },
+            }} /* Hide scrollbar visually */
+          >
             <HStack
-              spacing={4}
+              spacing={5}
               align="stretch"
-              px={1}
-              minH={{ base: "160px", sm: "180px", md: "190px", lg: "200px" }}
+              px={2}
+              /* Consistent spacing and slight edge padding */ minH={{
+                base: "280px",
+                sm: "310px",
+                md: "350px",
+                lg: "380px",
+                xl: "410px",
+              }} /* Min height for taller cards */
             >
-              {" "}
-              {/* Approximate min height = cardSize + padding */}
-              {recommendations.map((item) => (
-                <RecommendationCard
-                  key={item.id}
-                  item={item}
-                  itemType={itemType}
-                  cardWidth={cardSize} // Pass responsive size object
-                  cardHeight={cardSize} // Pass responsive size object (for SQUARE)
-                />
-              ))}
+              {loadingRecs &&
+                Array.from({ length: 6 }).map((_, i) => (
+                  <PosterSkeletonCard key={`skel-${i}`} cardWidth={cardWidth} />
+                ))}
+              {!loadingRecs &&
+                recommendations.map((item, index) => (
+                  <SketchyVerticalPosterCard
+                    key={item.id}
+                    item={item}
+                    itemType={itemType}
+                    cardWidth={cardWidth}
+                    index={index}
+                    genreMap={ALL_GENRES_MAP}
+                  />
+                ))}
             </HStack>
+          </Flex>
+          {/* Scroll Buttons */}
+          {!loadingRecs && recommendations.length > 0 && totalPages > 1 && (
+            <>
+              <AnimatePresence>
+                {showPrev && (
+                  <MotionBox
+                    position="absolute"
+                    top="50%"
+                    left={{ base: "5px", md: "-5px" }}
+                    transform="translateY(-50%)"
+                    zIndex={10}
+                    {...{
+                      initial: { opacity: 0, x: -15 },
+                      animate: { opacity: 1, x: 0 },
+                      exit: { opacity: 0, x: -15 },
+                      transition: {
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 20,
+                      },
+                    }}
+                  >
+                    <SketchButton
+                      onClick={() => handleScroll("prev")}
+                      size="sm"
+                      ariaLabel="Scroll previous"
+                    >
+                      <Icon as={FaChevronLeft} boxSize={5} />
+                    </SketchButton>
+                  </MotionBox>
+                )}
+              </AnimatePresence>
+              <AnimatePresence>
+                {showNext && (
+                  <MotionBox
+                    position="absolute"
+                    top="50%"
+                    right={{ base: "5px", md: "-5px" }}
+                    transform="translateY(-50%)"
+                    zIndex={10}
+                    {...{
+                      initial: { opacity: 0, x: 15 },
+                      animate: { opacity: 1, x: 0 },
+                      exit: { opacity: 0, x: 15 },
+                      transition: {
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 20,
+                      },
+                    }}
+                  >
+                    <SketchButton
+                      onClick={() => handleScroll("next")}
+                      size="sm"
+                      ariaLabel="Scroll next"
+                    >
+                      <Icon as={FaChevronRight} boxSize={5} />
+                    </SketchButton>
+                  </MotionBox>
+                )}
+              </AnimatePresence>
+            </>
           )}
-        </Flex>{" "}
-        {/* End Scrollable Flex container */}
-        {/* STATE 3: Empty State Message */}
+        </MotionBox>
+
+        {/* Scroll Indicator Dots */}
+        {!loadingRecs && totalPages > 1 && (
+          <HStack
+            justify="center"
+            spacing={2.5}
+            mt={8} /* Increased margin top */
+          >
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <MotionBox
+                key={`dot-${i}`}
+                w="9px"
+                h="9px"
+                /* Slightly larger */ bg={
+                  i === currentPage ? THEME.colors.accent : THEME.colors.border
+                }
+                borderRadius="2px"
+                /* More square */ border={`1px solid ${
+                  i === currentPage
+                    ? THEME.colors.accent
+                    : THEME.colors.borderSubtle
+                }`}
+                initial={false}
+                animate={{
+                  scale: i === currentPage ? 1.3 : 0.8,
+                  opacity: i === currentPage ? 1 : 0.6,
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 12 }}
+                cursor="pointer"
+                onClick={() => {
+                  const jumpScroll =
+                    i * itemsPerPage * (parseInt(cardWidth.md || "190") + 20);
+                  scrollRef.current?.scrollTo({
+                    left: jumpScroll,
+                    behavior: "smooth",
+                  });
+                }}
+              />
+            ))}
+          </HStack>
+        )}
+
+        {/* Empty State */}
         {!loadingRecs && recommendations.length === 0 && (
-          <Text color={mutedTextColor} textAlign="center" py={10} fontSize="sm">
-            No recommendations found for this title.
+          <Text
+            color={THEME.colors.subtleText}
+            textAlign="center"
+            pt={10}
+            fontSize="sm"
+            fontFamily={THEME.fonts.body}
+          >
+            Nothing quite like it!
           </Text>
         )}
-      </Box>{" "}
-      {/* End scroll container wrapper */}
-      {/* Scroll Navigation Buttons - Positioned Absolutely */}
-      {/* Only show buttons if NOT loading AND there ARE recommendations */}
-      {!loadingRecs && recommendations.length > 0 && (
-        <>
-          {/* Previous Button */}
-          <AnimatePresence>
-            {showPrev && ( // Conditionally render based on showPrev state
-              <MotionBox
-                position="absolute"
-                // Position vertically centered
-                top="50%"
-                // Position horizontally: near edge on mobile, outside padding on larger screens
-                left={{ base: "5px", md: "0px" }}
-                transform="translateY(-50%)" // Adjust vertical position to truly center
-                zIndex={10} // Ensure buttons are above scroll content
-                // Animation for appearing/disappearing
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-              >
-                {/* Use the SketchButton component for styling */}
-                <SketchButton
-                  onClick={() => handleScroll("prev")}
-                  size="sm" // Use small size for nav buttons
-                  primary={false} // Use secondary style (dark background)
-                  disabled={!showPrev} // Disable if already at start (redundant check, but safe)
-                  ariaLabel="Scroll previous recommendations" // Important for accessibility
-                  px={2} // Minimal horizontal padding for icon
-                  minH={8}
-                  minW={8} // Make button more square
-                >
-                  <Icon as={FaChevronLeft} boxSize={4} /> {/* The icon */}
-                </SketchButton>
-              </MotionBox>
-            )}
-          </AnimatePresence>
-
-          {/* Next Button */}
-          <AnimatePresence>
-            {showNext && ( // Conditionally render based on showNext state
-              <MotionBox
-                position="absolute"
-                top="50%"
-                // Position horizontally: near edge on mobile, outside padding on larger screens
-                right={{ base: "5px", md: "0px" }}
-                transform="translateY(-50%)"
-                zIndex={10}
-                // Animation
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-              >
-                <SketchButton
-                  onClick={() => handleScroll("next")}
-                  size="sm"
-                  primary={false}
-                  disabled={!showNext} // Disable if already at end
-                  ariaLabel="Scroll next recommendations"
-                  px={2}
-                  minH={8}
-                  minW={8}
-                >
-                  <Icon as={FaChevronRight} boxSize={4} />
-                </SketchButton>
-              </MotionBox>
-            )}
-          </AnimatePresence>
-        </>
-      )}{" "}
-      {/* End Conditional Buttons Render */}
-    </Box> // End Outer container for the whole section
-  );
+      </Container>
+    );
+  }
+  return null;
 }
 
-export default RecommendationsSection; // Export the main component
+export default RecommendationsSection;

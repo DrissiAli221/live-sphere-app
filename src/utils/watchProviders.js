@@ -14,7 +14,7 @@ export const watchProviders = [
   {
     name: "Prime Video",
     url: "https://www.primevideo.com",
-    src: "https://cdn.brandfetch.io/idawOgYOsG/theme/light/idiQe5Cv-5.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    src: "https://cdn.brandfetch.io/idXRXV6qi8/w/109/h/32/theme/dark/idMsHzwlf1.png?c=1dxbfHSJFAPEGdCLU4o5B",
     bgColor: "#00A8E1",
   },
   {
@@ -32,7 +32,7 @@ export const watchProviders = [
   {
     name: "Apple TV+",
     url: "https://www.apple.com/apple-tv-plus",
-    src: "https://cdn.brandfetch.io/idnrCPuv87/theme/light/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
+    src: "https://cdn.brandfetch.io/idXEjmtRTY/theme/light/logo.svg?c=1dxbfHSJFAPEGdCLU4o5B",
     bgColor: "#000000",
   },
   {

@@ -20,8 +20,9 @@ import { motion, AnimatePresence } from "framer-motion";
 
 // --- Service/Util/Component Imports ---
 import {
-
   baseImageW500,
+  fetchSimilarMovies,
+  fetchMovieVideos,
 } from "@/services/api"; // Adjust path
 // Import the themed child components:
 
@@ -33,8 +34,6 @@ import {
   FaMoneyBillWave,
   FaGlobe,
   FaCalendarAlt as FaCalendarAltOriginal, // Keep original if needed
-  FaChevronLeft, // If used by children
-  FaChevronRight, // If used by children
 } from "react-icons/fa";
 import { BsCalendarDate } from "react-icons/bs";
 import { MdBookmarkAdd, MdBookmarkAdded, MdShare } from "react-icons/md";
